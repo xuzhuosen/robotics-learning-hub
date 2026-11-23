@@ -20,18 +20,7 @@
     { "id": "ppo", "name": "PPO：连接理论与训练", "chapter": "第 10 章", "phase": "train", "level": "重点", "url": "https://datawhalechina.github.io/dive-into-embodied-ai/docs/foundations/rl-for-robotics/ppo", "practice": "跑通示例，再定位鸭子训练配置中的观测、奖励和终止条件。" },
     { "id": "imitation", "name": "模仿学习", "chapter": "第 12 章", "phase": "expand", "level": "按方向选学", "url": "https://datawhalechina.github.io/dive-into-embodied-ai/docs/foundations/rl-for-robotics/imitation-learning", "practice": "选择操作方向时，尝试示教采集与行为克隆。" }
   ],
-  "tasks": [
-    { "id": "T01", "title": "确认硬件与软件版本", "status": "ready", "owner": 0, "phase": "start", "tag": "硬件", "description": "核对主板完整型号、舵机型号、结构件版本、IMU 和配套镜像，建立匹配清单。", "acceptance": "清单包含来源链接和版本；另一人完成核对。", "next": "向卖家确认主板与舵机的准确型号。" },
-    { "id": "T02", "title": "跑通一个小型 RL 示例", "status": "ready", "owner": 1, "phase": "start", "tag": "学习", "description": "先选择轻量环境，记录安装、运行和结果，不以鸭子整机训练作为第一个练习。", "acceptance": "主责人能解释观测、动作、奖励与终止条件，其他成员能按记录复现。", "next": "选定环境，提交环境版本和启动命令。" },
-    { "id": "T03", "title": "建立单舵机与 IMU 检查记录", "status": "backlog", "owner": 0, "phase": "start", "tag": "硬件", "description": "硬件到货后，按对应版本教程检查通信、ID、反馈方向和 IMU 方向。", "acceptance": "关节映射与方向检查有记录；异常单独列出。", "next": "先阅读匹配版本的首次使用指南。" },
-    { "id": "T04", "title": "完成装配与标定", "status": "backlog", "owner": 0, "phase": "start", "tag": "实机", "description": "完成机械、电气装配，按文档标定，保存零位和配置。", "acceptance": "标定配置已保存，关节限位和传感器方向已检查。", "next": "单件检查通过后再开始整机装配。" },
-    { "id": "T05", "title": "复现已有策略的站立与行走", "status": "backlog", "owner": 0, "phase": "start", "tag": "实机", "description": "使用与硬件匹配的策略，先完成急停与受保护检查，再进行低速运动。", "acceptance": "保存版本、启动步骤、配置和视频；可重复运行。", "next": "确认前置装配、标定与急停检查完成。" },
-    { "id": "T06", "title": "让伙伴独立复现运行流程", "status": "backlog", "owner": 1, "phase": "start", "tag": "协作", "description": "主责人提供记录，伙伴按文档复现；异地时现场操作员配合远程观察员。", "acceptance": "记录中的缺失步骤已补齐，两人都能解释启动与恢复过程。", "next": "整理一份从开机到停止的运行手册。" },
-    { "id": "T07", "title": "画出策略控制链路", "status": "backlog", "owner": 1, "phase": "train", "tag": "学习", "description": "顺着代码追踪传感器、观测、归一化、推理、动作缩放和舵机输出。", "acceptance": "图中每一步有代码位置，两人分别讲解一次。", "next": "从运行版本的控制循环入口开始读。" },
-    { "id": "T08", "title": "复现训练与模型导出", "status": "backlog", "owner": 1, "phase": "train", "tag": "仿真", "description": "核对算力与执行器模型，保持基线配置不变，先短跑再训练和评估。", "acceptance": "配置、曲线、评估视频与导出模型可追溯，仿真回放通过。", "next": "记录 GPU、软件版本和适配的训练工程。" },
-    { "id": "T09", "title": "完成一个单变量对比实验", "status": "backlog", "owner": 0, "phase": "train", "tag": "实验", "description": "从时延、摩擦或低速稳定性中选一个问题，明确假设、条件和评价方法。", "acceptance": "有基线、对照、原始数据及适用范围；失败结果同样记录。", "next": "从最近的问题中选出一个可验证假设。" },
-    { "id": "T10", "title": "共同选择下一阶段方向", "status": "backlog", "owner": 1, "phase": "expand", "tag": "协作", "description": "回顾作品、兴趣和可投入时间，选择继续运动控制，或扩展感知与操作。", "acceptance": "有一份说明取舍、预算和下一阶段成果的决策记录。", "next": "先完成当前阶段，候选方向进入想法池。" }
-  ],
+  "tasks": [],
   "ideas": [
     { "id": "I01", "title": "低电量会怎样影响鸭子的稳定性？", "kind": "idea", "tag": "执行器与供电", "description": "一个适合连接电机控制经验与 Sim-to-Real 的候选实验，先明确测试条件。", "source": "起步建议 · 待讨论" },
     { "id": "I02", "title": "做一份可复用的故障排查手册", "kind": "idea", "tag": "知识积累", "description": "从真实求助中沉淀故障现象、排查步骤和解决办法，随实验逐步完善。", "source": "起步建议 · 待讨论" },
