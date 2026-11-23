@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172b27">
+  <meta name="description" content="以项目为主线的机器人学习与实验记录工作台，当前聚焦 MicroDuck 复刻。">
+  <title>Duck Lab</title>
+  <link rel="icon" href="./assets/duck.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a href="#main" class="skip-link">跳到主要内容</a>
+  <div id="app"><p class="loading-message">正在打开学习工作台…</p></div>
+  <noscript>请启用 JavaScript 以查看学习路线与项目看板。原始计划保存在 data/space.json 中。</noscript>
+  <dialog id="modal" aria-labelledby="modal-title"></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>

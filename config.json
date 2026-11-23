@@ -1,0 +1,9 @@
+{
+  "siteName": "Duck Lab",
+  "owner": "",
+  "repo": "",
+  "members": [
+    { "name": "你", "github": "", "focus": "电控 · 硬件 · 调试" },
+    { "name": "伙伴", "github": "", "focus": "仿真 · 软件 · 训练" }
+  ]
+}

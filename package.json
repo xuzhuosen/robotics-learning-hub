@@ -1,0 +1,13 @@
+{
+  "name": "duck-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "两个人的机器人学习空间，使用 GitHub Pages 和 Issues，无需数据库。",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": { "node": ">=20" }
+}

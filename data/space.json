@@ -1,0 +1,48 @@
+{
+  "project": {
+    "name": "MicroDuck 复刻",
+    "description": "从装配与标定，到理解策略，再做一次自己的改进。",
+    "stage": "起步准备",
+    "goal": "能够独立启动、标定、运行和排查这台机器人，并留下他人可复现的记录。",
+    "weeklyFocus": "核对硬件版本，跑通第一个小实验。"
+  },
+  "phases": [
+    { "id": "start", "number": "01", "name": "让鸭子动起来", "subtitle": "MicroDuck · 装配与复现", "state": "当前方向", "goal": "匹配硬件与软件版本，完成标定、站立和低速行走。", "skills": ["Linux 与 Git", "舵机与 IMU", "坐标系与标定", "可复现的调试"], "outputs": ["硬件版本清单", "关节映射表", "运行与恢复手册", "已有策略实机视频"], "gate": "另一人按照记录独立复现运行流程。" },
+    { "id": "train", "number": "02", "name": "理解，再训练", "subtitle": "强化学习 · Sim-to-Real", "state": "后续方向", "goal": "读懂控制链路，复现训练，并完成一个有对照的改进实验。", "skills": ["MDP 与 PPO", "MuJoCo", "执行器建模", "实验设计"], "outputs": ["观测与动作说明", "训练配置与评估", "ONNX 仿真回放", "改进对比报告"], "gate": "训练结果可复现；确认硬件与接口匹配后再逐步上机。" },
+    { "id": "expand", "number": "03", "name": "给机器人新能力", "subtitle": "感知或操作 · 选择一个分支", "state": "候选方向", "goal": "根据共同兴趣，在视觉跟随、简单自主行为、机械臂操作中选择一项。", "skills": ["视觉与传感器", "系统集成", "按需学习 ROS 2", "模仿学习"], "outputs": ["方向选择记录", "可测量的任务定义", "端到端任务演示"], "gate": "选择一个方向并明确预算、投入与验收标准。" },
+    { "id": "create", "number": "04", "name": "做自己的机器人项目", "subtitle": "自主定义 · 分享作品", "state": "远期方向", "goal": "从自己的问题出发，选择硬件和方法，做出能够解释、验证和分享的作品。", "skills": ["需求与方案取舍", "系统设计", "持续验证", "开源协作"], "outputs": ["项目提案", "实验与设计文档", "作品或开源贡献"], "gate": "用证据说明解决了什么问题，以及适用范围。" }
+  ],
+  "courses": [
+    { "id": "mdp", "name": "MDP：把问题定义清楚", "chapter": "第 2 章", "phase": "start", "level": "先学", "url": "https://datawhalechina.github.io/dive-into-embodied-ai/docs/foundations/rl-for-robotics/mdp", "practice": "为鸭子写一张观测、动作、奖励、终止条件表。" },
+    { "id": "value", "name": "价值估计与 TD", "chapter": "第 3—5 章", "phase": "start", "level": "建立直觉", "url": "https://datawhalechina.github.io/dive-into-embodied-ai/docs/foundations/rl-for-robotics/temporal-difference", "practice": "做一个小环境练习，观察价值如何更新。" },
+    { "id": "pg", "name": "策略梯度", "chapter": "第 7 章", "phase": "train", "level": "重点", "url": "https://datawhalechina.github.io/dive-into-embodied-ai/docs/foundations/rl-for-robotics/policy-gradient", "practice": "结合代码解释策略怎样根据回报改善。" },
+    { "id": "ac", "name": "Actor-Critic", "chapter": "第 8 章", "phase": "train", "level": "重点", "url": "https://datawhalechina.github.io/dive-into-embodied-ai/docs/foundations/rl-for-robotics/actor-critic", "practice": "解释策略网络、价值网络和优势估计各负责什么。" },
+    { "id": "ppo", "name": "PPO：连接理论与训练", "chapter": "第 10 章", "phase": "train", "level": "重点", "url": "https://datawhalechina.github.io/dive-into-embodied-ai/docs/foundations/rl-for-robotics/ppo", "practice": "跑通示例，再定位鸭子训练配置中的观测、奖励和终止条件。" },
+    { "id": "imitation", "name": "模仿学习", "chapter": "第 12 章", "phase": "expand", "level": "按方向选学", "url": "https://datawhalechina.github.io/dive-into-embodied-ai/docs/foundations/rl-for-robotics/imitation-learning", "practice": "选择操作方向时，尝试示教采集与行为克隆。" }
+  ],
+  "tasks": [
+    { "id": "T01", "title": "确认硬件与软件版本", "status": "ready", "owner": 0, "phase": "start", "tag": "硬件", "description": "核对主板完整型号、舵机型号、结构件版本、IMU 和配套镜像，建立匹配清单。", "acceptance": "清单包含来源链接和版本；另一人完成核对。", "next": "向卖家确认主板与舵机的准确型号。" },
+    { "id": "T02", "title": "跑通一个小型 RL 示例", "status": "ready", "owner": 1, "phase": "start", "tag": "学习", "description": "先选择轻量环境，记录安装、运行和结果，不以鸭子整机训练作为第一个练习。", "acceptance": "主责人能解释观测、动作、奖励与终止条件，其他成员能按记录复现。", "next": "选定环境，提交环境版本和启动命令。" },
+    { "id": "T03", "title": "建立单舵机与 IMU 检查记录", "status": "backlog", "owner": 0, "phase": "start", "tag": "硬件", "description": "硬件到货后，按对应版本教程检查通信、ID、反馈方向和 IMU 方向。", "acceptance": "关节映射与方向检查有记录；异常单独列出。", "next": "先阅读匹配版本的首次使用指南。" },
+    { "id": "T04", "title": "完成装配与标定", "status": "backlog", "owner": 0, "phase": "start", "tag": "实机", "description": "完成机械、电气装配，按文档标定，保存零位和配置。", "acceptance": "标定配置已保存，关节限位和传感器方向已检查。", "next": "单件检查通过后再开始整机装配。" },
+    { "id": "T05", "title": "复现已有策略的站立与行走", "status": "backlog", "owner": 0, "phase": "start", "tag": "实机", "description": "使用与硬件匹配的策略，先完成急停与受保护检查，再进行低速运动。", "acceptance": "保存版本、启动步骤、配置和视频；可重复运行。", "next": "确认前置装配、标定与急停检查完成。" },
+    { "id": "T06", "title": "让伙伴独立复现运行流程", "status": "backlog", "owner": 1, "phase": "start", "tag": "协作", "description": "主责人提供记录，伙伴按文档复现；异地时现场操作员配合远程观察员。", "acceptance": "记录中的缺失步骤已补齐，两人都能解释启动与恢复过程。", "next": "整理一份从开机到停止的运行手册。" },
+    { "id": "T07", "title": "画出策略控制链路", "status": "backlog", "owner": 1, "phase": "train", "tag": "学习", "description": "顺着代码追踪传感器、观测、归一化、推理、动作缩放和舵机输出。", "acceptance": "图中每一步有代码位置，两人分别讲解一次。", "next": "从运行版本的控制循环入口开始读。" },
+    { "id": "T08", "title": "复现训练与模型导出", "status": "backlog", "owner": 1, "phase": "train", "tag": "仿真", "description": "核对算力与执行器模型，保持基线配置不变，先短跑再训练和评估。", "acceptance": "配置、曲线、评估视频与导出模型可追溯，仿真回放通过。", "next": "记录 GPU、软件版本和适配的训练工程。" },
+    { "id": "T09", "title": "完成一个单变量对比实验", "status": "backlog", "owner": 0, "phase": "train", "tag": "实验", "description": "从时延、摩擦或低速稳定性中选一个问题，明确假设、条件和评价方法。", "acceptance": "有基线、对照、原始数据及适用范围；失败结果同样记录。", "next": "从最近的问题中选出一个可验证假设。" },
+    { "id": "T10", "title": "共同选择下一阶段方向", "status": "backlog", "owner": 1, "phase": "expand", "tag": "协作", "description": "回顾作品、兴趣和可投入时间，选择继续运动控制，或扩展感知与操作。", "acceptance": "有一份说明取舍、预算和下一阶段成果的决策记录。", "next": "先完成当前阶段，候选方向进入想法池。" }
+  ],
+  "ideas": [
+    { "id": "I01", "title": "低电量会怎样影响鸭子的稳定性？", "kind": "idea", "tag": "执行器与供电", "description": "一个适合连接电机控制经验与 Sim-to-Real 的候选实验，先明确测试条件。", "source": "起步建议 · 待讨论" },
+    { "id": "I02", "title": "做一份可复用的故障排查手册", "kind": "idea", "tag": "知识积累", "description": "从真实求助中沉淀故障现象、排查步骤和解决办法，随实验逐步完善。", "source": "起步建议 · 待讨论" },
+    { "id": "I03", "title": "后续更想研究运动，还是感知与操作？", "kind": "idea", "tag": "未来方向", "description": "随时收集感兴趣的作品和资料，在阶段复盘时再共同选择。", "source": "起步建议 · 待讨论" }
+  ],
+  "resources": [
+    { "name": "MicroDuck 第三方复刻", "type": "项目", "url": "https://github.com/fanhao375/microduck-replica", "description": "装配、镜像、标定、中控与训练资料。先按主板和舵机版本选择。" },
+    { "name": "MicroDuck 官方运行仓库", "type": "源码", "url": "https://github.com/pollen-robotics/microduck", "description": "阅读运行时、控制循环与系统文档，核对与复刻版本的差异。" },
+    { "name": "MicroDuck 官方训练仓库", "type": "源码", "url": "https://github.com/pollen-robotics/microduck_rl", "description": "MuJoCo/mjlab、PPO 与模型导出；执行器配置须与实物匹配。" },
+    { "name": "Datawhale · 强化学习与控制", "type": "课程", "url": "https://datawhalechina.github.io/dive-into-embodied-ai/docs/foundations/rl-for-robotics/intro", "description": "以 MDP → 策略梯度 → Actor-Critic → PPO 为主线，学习后安排一次实践。" },
+    { "name": "MuJoCo 文档", "type": "工具", "url": "https://mujoco.readthedocs.io/", "description": "在仿真与模型问题出现时查阅，不必从头通读。" },
+    { "name": "Modern Robotics", "type": "基础", "url": "https://modernrobotics.northwestern.edu/", "description": "按需补坐标变换、运动学和控制基础，用项目问题驱动选学。" }
+  ]
+}
