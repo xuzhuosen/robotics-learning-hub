@@ -32,6 +32,9 @@ test('Chinese record text and special characters survive a prefilled GitHub issu
   assert.equal(issueUrl(normalizeConfig(), 'help', 'x', body), '');
   assert.equal(issueUrl(config, 'unknown', 'x', body), '');
   assert.equal(new URL(issueUrl(config, 'progress', '完成标定', body)).searchParams.get('title'), '[记录] 完成标定');
+  const task = new URL(issueUrl(config, 'task', '', '<!-- phase:train -->', { labels: ['task', 'phase:train', 'software'] }));
+  assert.equal(task.searchParams.get('labels'), 'task,phase:train,software');
+  assert.equal(task.searchParams.get('body'), '<!-- phase:train -->');
 });
 test('task and experiment templates preserve context and require evidence', () => {
   assert.match(recordBody('progress', { task: 'T03', next: '检查 IMU 方向' }), /关联任务：T03/);
@@ -111,14 +114,20 @@ test('information architecture centers the current project and removes duplicate
   assert.doesNotMatch(app, /data\.ideas\.length \+ activity\(\)\.length/);
   assert.match(app, /const taskSection = all\.length \?/);
   assert.doesNotMatch(app, /COLLABORATION|查看协作约定/);
-  assert.match(app, /filter\('all', '全部'\).*filter\('records', '实践'\).*filter\('discussions', '讨论'\)/s);
+  assert.match(app, /filter\('all', '全部'\).*filter\('records', '记录'\).*filter\('discussions', '讨论'\)/s);
   assert.doesNotMatch(app, /filter\('(progress|experiment|idea|help)'/);
   assert.doesNotMatch(app, /<select name="kind"|Object\.entries\(KINDS\)\.map/);
-  assert.match(app, /record-kind-options.*value="progress".*value="experiment"/s);
   assert.match(app, /activity-toolbar.*发起讨论/s);
-  assert.match(app, /还没有实践记录.*新增记录.*还没有讨论.*发起讨论/s);
+  assert.match(app, /const logs = \(\) => records/);
+  assert.match(app, /const activity = \(\) => state\.issues\.filter\(i => classifyIssue\(i\) !== 'task'\)/);
+  assert.match(app, /还没有文章记录.*新增记录.*还没有讨论.*发起讨论/s);
+  const newTask = app.match(/function newTask\(\)[\s\S]*?\n}/)?.[0] || '';
+  assert.match(newTask, /id="task-form".*阶段.*到 GitHub 填写任务/s);
+  assert.match(newTask, /task-label-fieldset.*标签（可多选）/s);
+  assert.doesNotMatch(newTask, /name="title"|textarea/);
+  assert.doesNotMatch(app, /nav-count/);
   assert.doesNotMatch(app, /### 主责人|### 证据链接/);
   assert.doesNotMatch(app, /id="phase-detail"|章节完成不等于能力验收/);
   assert.doesNotMatch(app, /hero-note|hero-stamp|GitHub 驱动 · 无数据库/);
-  assert.match(app, /aria-label="MicroDuck 双足机器人插画"/);
+  assert.match(app, /aria-label="自然站立的 MicroDuck 双足机器人插画"/);
 });

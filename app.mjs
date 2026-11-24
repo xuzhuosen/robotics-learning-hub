@@ -26,8 +26,8 @@ const icon = (name, cls = '') => `<svg class="icon ${cls}" viewBox="0 0 24 24" f
 const nav = [['home', '首页'], ['board', '任务'], ['activity', '记录与讨论'], ['roadmap', '学习路径']];
 const $ = selector => document.querySelector(selector);
 const emptyTaskFilters = () => ({ query: '', status: 'all', phase: 'all', label: 'all', author: 'all', assignee: 'all' });
-const state = { route: 'home', query: '', taskFilters: emptyTaskFilters(), ideaKind: 'all', issues: [], sync: 'idle', syncError: '', limited: false, selectedPhase: 'start', request: 0 };
-let config, data;
+const state = { route: 'home', query: '', taskFilters: emptyTaskFilters(), ideaKind: 'all', issues: [], repoLabels: [], sync: 'idle', syncError: '', limited: false, selectedPhase: 'start', request: 0 };
+let config, data, records = [];
 let snapshot = null;
 let toastTimer;
 let draftBeforeSettings = null;
@@ -49,8 +49,8 @@ const external = (url, label, cls = '') => `<a href="${e(safeUrl(url))}" target=
 const memberName = owner => owner === null || owner === undefined ? '待认领' : config.members[owner]?.name || '待认领';
 const avatar = (owner, small = false) => `<span class="avatar ${owner === 1 ? 'lavender' : 'sage'} ${small ? 'small' : ''}" title="${e(memberName(owner))}">${e(memberName(owner).slice(0, 1))}</span>`;
 const tasks = () => mergeTasks([], state.issues);
-const logs = () => state.issues.filter(i => ['progress', 'experiment'].includes(classifyIssue(i)));
-const activity = () => state.issues.filter(i => ['progress', 'experiment', 'idea', 'help'].includes(classifyIssue(i)));
+const logs = () => records;
+const activity = () => state.issues.filter(i => classifyIssue(i) !== 'task');
 const statusName = id => STATUSES.find(s => s.id === id)?.name || '待选';
 
 function syncNote() {
@@ -62,15 +62,14 @@ function syncNote() {
 }
 
 function duckArtwork() {
-  return `<svg class="duck-art" viewBox="0 0 420 300" role="img" aria-label="MicroDuck 双足机器人插画"><defs><linearGradient id="shellPaint" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8edc4"/><stop offset="1" stop-color="#9bc297"/></linearGradient><linearGradient id="metalPaint" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#55766c"/><stop offset="1" stop-color="#29483f"/></linearGradient></defs><g fill="none" stroke="#75967c" stroke-opacity=".24"><path d="M93 239h244M113 258h204"/><path d="M115 230v18m202-18v18"/></g><ellipse cx="218" cy="253" rx="104" ry="15" fill="#203e32" opacity=".12"/><g stroke="#284a41" stroke-linecap="round" stroke-linejoin="round"><path d="M193 194 177 229" stroke-width="16"/><path d="m177 229-27 15h58" fill="none" stroke-width="17"/><path d="m247 194 18 34" stroke-width="16"/><path d="m265 228 31 16h-58" fill="none" stroke-width="17"/><circle cx="187" cy="210" r="14" fill="#c7dfb7" stroke-width="5"/><circle cx="255" cy="209" r="14" fill="#c7dfb7" stroke-width="5"/><circle cx="187" cy="210" r="4" fill="#6f9577" stroke="none"/><circle cx="255" cy="209" r="4" fill="#6f9577" stroke="none"/><path d="M174 134 201 116h47l27 18-7 58-25 17h-46l-25-17Z" fill="url(#metalPaint)" stroke-width="4"/><path d="m180 138 27-13h35l25 13-7 45-20 14h-39l-20-14Z" fill="url(#shellPaint)" stroke-width="3"/><path d="M204 126v70m37-69v69" fill="none" stroke="#789c7f" stroke-width="2"/><rect x="207" y="143" width="31" height="29" rx="7" fill="#294b42" stroke-width="3"/><circle cx="222.5" cy="157.5" r="7" fill="#bdddac" stroke="none"/><circle cx="181" cy="162" r="14" fill="#45685e" stroke-width="4"/><circle cx="181" cy="162" r="5" fill="#bdddac" stroke="none"/><circle cx="265" cy="162" r="14" fill="#45685e" stroke-width="4"/><circle cx="265" cy="162" r="5" fill="#bdddac" stroke="none"/><path d="M209 118V94h27v24" fill="#294b42" stroke-width="4"/><circle cx="222.5" cy="99" r="8" fill="#bdddac" stroke-width="4"/><path d="m175 58 51-14 41 15v36l-40 17-51-17Z" fill="url(#shellPaint)" stroke-width="4"/><path d="m226 44 1 68m0-17 40-15" fill="none" stroke="#789c7f" stroke-width="2"/><path d="m267 69 43 10-2 17-41-1Z" fill="#e7ad61" stroke-width="4"/><circle cx="247" cy="65" r="7" fill="#27473e" stroke="none"/><circle cx="249" cy="63" r="2" fill="#f4f7ee" stroke="none"/><path d="m187 66 21-6m-21 15 21-6" fill="none" stroke="#64876d" stroke-width="4"/><path d="M198 181h49" fill="none" stroke="#64876d" stroke-width="4"/><circle cx="192" cy="140" r="3" fill="#64876d" stroke="none"/><circle cx="253" cy="140" r="3" fill="#64876d" stroke="none"/></g></svg>`;
+  return `<svg class="duck-art" viewBox="0 0 420 300" role="img" aria-label="自然站立的 MicroDuck 双足机器人插画"><defs><linearGradient id="shellPaint" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8edc4"/><stop offset="1" stop-color="#9bc297"/></linearGradient><linearGradient id="metalPaint" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#55766c"/><stop offset="1" stop-color="#29483f"/></linearGradient></defs><g fill="none" stroke="#75967c" stroke-opacity=".24"><path d="M91 248h250M118 266h198"/><path d="M118 239v18m199-18v18"/></g><ellipse cx="224" cy="257" rx="111" ry="14" fill="#203e32" opacity=".12"/><g stroke="#284a41" stroke-linecap="round" stroke-linejoin="round"><path d="M195 193 177 228" stroke-width="16"/><path d="M177 228 145 247h62" fill="none" stroke-width="17"/><path d="M246 195 258 232" stroke-width="16"/><path d="M258 232 307 246h-61" fill="none" stroke-width="17"/><circle cx="188" cy="209" r="14" fill="#c7dfb7" stroke-width="5"/><circle cx="253" cy="211" r="14" fill="#c7dfb7" stroke-width="5"/><circle cx="188" cy="209" r="4" fill="#6f9577" stroke="none"/><circle cx="253" cy="211" r="4" fill="#6f9577" stroke="none"/><g transform="rotate(2 223 164)"><path d="M174 134 201 116h47l27 18-7 58-25 17h-46l-25-17Z" fill="url(#metalPaint)" stroke-width="4"/><path d="m180 138 27-13h35l25 13-7 45-20 14h-39l-20-14Z" fill="url(#shellPaint)" stroke-width="3"/><path d="M204 126v70m37-69v69" fill="none" stroke="#789c7f" stroke-width="2"/><rect x="207" y="143" width="31" height="29" rx="7" fill="#294b42" stroke-width="3"/><circle cx="222.5" cy="157.5" r="7" fill="#bdddac" stroke="none"/><circle cx="181" cy="162" r="14" fill="#45685e" stroke-width="4"/><circle cx="181" cy="162" r="5" fill="#bdddac" stroke="none"/><circle cx="265" cy="162" r="14" fill="#45685e" stroke-width="4"/><circle cx="265" cy="162" r="5" fill="#bdddac" stroke="none"/><path d="M209 118V94h27v24" fill="#294b42" stroke-width="4"/><circle cx="222.5" cy="99" r="8" fill="#bdddac" stroke-width="4"/></g><g transform="rotate(-5 222 80)"><path d="m175 58 51-14 41 15v36l-40 17-51-17Z" fill="url(#shellPaint)" stroke-width="4"/><path d="m226 44 1 68m0-17 40-15" fill="none" stroke="#789c7f" stroke-width="2"/><path d="m267 69 43 10-2 17-41-1Z" fill="#e7ad61" stroke-width="4"/><circle cx="247" cy="65" r="7" fill="#27473e" stroke="none"/><circle cx="249" cy="63" r="2" fill="#f4f7ee" stroke="none"/><path d="m187 66 21-6m-21 15 21-6" fill="none" stroke="#64876d" stroke-width="4"/></g><path d="M198 181h49" fill="none" stroke="#64876d" stroke-width="4"/></g></svg>`;
 }
 
 function renderShell() {
   const allTasks = tasks();
   const done = allTasks.filter(t => t.status === 'done').length;
   const progress = allTasks.length ? done / allTasks.length * 100 : 0;
-  const activityCount = activity().length;
-  $('#app').innerHTML = `<aside class="sidebar"><a class="brand" href="#home"><img src="./assets/duck.svg" width="42" height="42" alt=""><span>${e(config.siteName)}<small>ROBOT LEARNING LOG</small></span></a><nav aria-label="主导航">${nav.map(([id, label]) => `<a href="#${id}" class="nav-link ${state.route === id ? 'active' : ''}" ${state.route === id ? 'aria-current="page"' : ''}>${icon(id)}<span>${label}</span>${id === 'activity' && activityCount ? `<span class="nav-count">${activityCount}</span>` : ''}</a>`).join('')}</nav><div class="sidebar-project"><span class="eyebrow">CURRENT PROJECT</span><a href="#board"><span class="project-dot"></span>MicroDuck 复刻 ${icon('arrow')}</a><div class="mini-progress"><i style="width:${progress}%"></i></div><span class="tiny">${allTasks.length ? `${done} / ${allTasks.length} 项任务完成` : '尚无任务'}</span></div><div class="sidebar-bottom"><div class="sidebar-quote">以项目带动学习，<br>让过程留下证据。</div><button class="settings-link" data-action="settings">${icon('settings')} 工作台设置 <span>${icon('arrow')}</span></button><div class="sidebar-foot"><span class="status-dot ${repoUrl(config) ? 'connected' : ''}"></span>${repoUrl(config) ? '已连接 GitHub 仓库' : '起步版 · 等待连接仓库'}</div></div></aside><div class="workspace"><header class="topbar"><div class="breadcrumb"><span>Duck Lab</span><span>/</span><strong>${e(nav.find(n => n[0] === state.route)?.[1] || '首页')}</strong></div><label class="search-box">${icon('search')}<input id="global-search" type="search" placeholder="搜索任务、记录、课程…" aria-label="搜索工作台内容" autocomplete="off"></label><div class="topbar-actions"><button class="icon-button" data-action="settings" aria-label="GitHub 连接设置">${icon('github')}</button></div></header><main id="main" tabindex="-1"></main><footer class="page-footer">学习靠行动，结论靠证据。</footer></div>`;
+  $('#app').innerHTML = `<aside class="sidebar"><a class="brand" href="#home"><img src="./assets/duck.svg" width="42" height="42" alt=""><span>${e(config.siteName)}<small>ROBOT LEARNING LOG</small></span></a><nav aria-label="主导航">${nav.map(([id, label]) => `<a href="#${id}" class="nav-link ${state.route === id ? 'active' : ''}" ${state.route === id ? 'aria-current="page"' : ''}>${icon(id)}<span>${label}</span></a>`).join('')}</nav><div class="sidebar-project"><span class="eyebrow">CURRENT PROJECT</span><a href="#board"><span class="project-dot"></span>MicroDuck 复刻 ${icon('arrow')}</a><div class="mini-progress"><i style="width:${progress}%"></i></div><span class="tiny">${allTasks.length ? `${done} / ${allTasks.length} 项任务完成` : '尚无任务'}</span></div><div class="sidebar-bottom"><div class="sidebar-quote">以项目带动学习，<br>让过程留下证据。</div><button class="settings-link" data-action="settings">${icon('settings')} 工作台设置 <span>${icon('arrow')}</span></button><div class="sidebar-foot"><span class="status-dot ${repoUrl(config) ? 'connected' : ''}"></span>${repoUrl(config) ? '已连接 GitHub 仓库' : '起步版 · 等待连接仓库'}</div></div></aside><div class="workspace"><header class="topbar"><div class="breadcrumb"><span>Duck Lab</span><span>/</span><strong>${e(nav.find(n => n[0] === state.route)?.[1] || '首页')}</strong></div><label class="search-box">${icon('search')}<input id="global-search" type="search" placeholder="搜索任务、记录、课程…" aria-label="搜索工作台内容" autocomplete="off"></label><div class="topbar-actions"><button class="icon-button" data-action="settings" aria-label="GitHub 连接设置">${icon('github')}</button></div></header><main id="main" tabindex="-1"></main><footer class="page-footer">学习靠行动，结论靠证据。</footer></div>`;
   renderContent();
 }
 
@@ -87,15 +86,23 @@ function taskCard(task, compact = false) {
   const publisher = task.issue?.user?.login;
   return `<button class="task-card ${compact ? 'compact' : ''}" data-task="${e(task.id)}"><div class="task-card-top"><span class="tag ${task.tag === '学习' ? 'purple' : task.tag === '协作' ? 'peach' : 'green'}">${e(task.tag)}</span><span class="mono tiny">${e(task.id)}</span></div><h3>${e(task.title)}</h3>${publisher ? `<span class="task-publisher">${icon('github')} @${e(publisher)} 发布</span>` : ''}${compact ? '' : `<p>${e(task.next)}</p>`}<div class="task-card-bottom"><span class="task-person">${avatar(task.owner, true)}${e(memberName(task.owner))}</span><span class="task-state"><i class="dot ${task.status}"></i>${statusName(task.status)}</span></div></button>`;
 }
+const recordUrl = record => `${repoUrl(config)}/blob/main/${String(record.path).split('/').map(encodeURIComponent).join('/')}`;
+function recordCard(record) {
+  const phase = data.phases.find(item => item.id === record.phase);
+  return `<article class="record-card"><div class="record-card-meta"><span>${phase ? `${e(phase.number)} · ${e(phase.name)}` : '学习记录'}</span><time datetime="${e(record.date)}">${e(record.date)}</time></div><h3>${e(record.title)}</h3><p>${e(record.excerpt || '打开文章查看完整记录。')}</p>${record.tags?.length ? `<div class="record-tags">${record.tags.map(tag => `<span>${e(tag)}</span>`).join('')}</div>` : ''}<div class="record-card-bottom"><span>${e(record.author || '仓库成员')}</span>${external(recordUrl(record), '查看文章', 'text-link')}</div></article>`;
+}
 function homePage() {
   const all = tasks(); const completed = all.filter(t => t.status === 'done').length;
   const ready = all.filter(t => ['ready', 'doing', 'waiting'].includes(t.status)).slice(0, 3);
-  const recent = activity().slice().sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at))).slice(0, 3);
+  const recent = [
+    ...logs().map(record => ({ type: 'record', date: record.date, value: record })),
+    ...activity().map(issue => ({ type: 'discussion', date: issue.updated_at, value: issue }))
+  ].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 3);
   const date = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
-  const openDiscussions = state.issues.filter(i => ['idea', 'help'].includes(classifyIssue(i)) && i.state === 'open').length;
+  const openDiscussions = activity().filter(issue => issue.state === 'open').length;
   const taskSection = all.length ? `<section>${sectionHeading('现在做什么', '只保留已经准备好或正在推进的任务。', '打开任务看板', 'board')}<div class="focus-note"><span class="tiny-label">本阶段焦点</span>${e(data.project.weeklyFocus)}</div><div class="focus-tasks">${ready.length ? ready.map(t => taskCard(t, true)).join('') : '<p class="muted">暂时没有正在推进的任务。</p>'}</div><div class="milestone-strip"><span class="milestone-icon">${icon('check')}</span><div><strong>阶段完成标准</strong><p>${e(data.project.goal)}</p></div></div></section>` : '';
-  const recentPanel = `<aside class="companion-panel"><div class="section-heading"><h2>最近记录与讨论</h2><a class="text-link" href="#activity">查看全部 ${icon('arrow')}</a></div>${recent.length ? `<div class="members">${recent.map(i => `<a class="member-row" href="${e(safeUrl(i.html_url))}" target="_blank" rel="noopener noreferrer"><span class="stat-icon ${classifyIssue(i) === 'help' ? 'orange' : 'violet'}">${icon(classifyIssue(i) === 'idea' ? 'ideas' : classifyIssue(i) === 'help' ? 'chat' : 'logs')}</span><div><strong>${e(String(i.title).replace(/^\[(想法|求助|讨论|记录|进展|实验)\]\s*/, ''))}</strong><p>${e(KINDS[classifyIssue(i)])} · ${shortDate(i.updated_at)}</p></div></a>`).join('')}</div>` : `<div class="ritual-card"><span class="eyebrow">ACTIVITY</span><h3>从第一条真实记录开始。</h3><p>写下完成了什么、证据在哪里，以及下一步。</p>${button('record', '写一条记录', 'plus', 'button')}</div>`}</aside>`;
-  return `${pageHeading('CURRENT PROJECT / MICRODUCK', '把 MicroDuck 跑起来，也把过程学明白。', `${e(date)} · 当前阶段：${e(data.project.stage)}`, button('record', '新增记录', 'plus', 'button primary'))}<section class="hero"><div class="hero-copy"><div class="hero-label"><span></span> PROJECT / 001</div><h2>MicroDuck<br>复刻计划</h2><p>${e(data.project.description)}</p><a class="button dark" href="#board">查看当前任务 ${icon('arrow')}</a></div>${duckArtwork()}</section><div class="stats-grid"><a href="#board" class="stat-card"><span class="stat-icon mint">${icon('board')}</span><div><span>任务进度</span><strong>${completed}<small> / ${all.length}</small></strong></div><span class="stat-caption">完成以验收为准</span></a><a href="#activity" class="stat-card"><span class="stat-icon violet">${icon('logs')}</span><div><span>过程记录</span><strong>${logs().length}<small> 篇</small></strong></div><span class="stat-caption">记录与实验</span></a><a href="#activity" class="stat-card"><span class="stat-icon orange">${icon('ideas')}</span><div><span>开放讨论</span><strong>${openDiscussions}<small> 个</small></strong></div><span class="stat-caption">问题与想法</span></a></div><div class="dashboard-grid ${all.length ? '' : 'single'}">${taskSection}${recentPanel}</div><section class="bottom-section">${sectionHeading('MicroDuck 之后', '当前项目决定近期课程；长期路线只保留方向，不提前堆满任务。', '查看学习路径', 'roadmap')}<div class="journey-strip">${data.phases.map((p, i) => `<a href="#roadmap" class="journey-step ${i === 0 ? 'current' : ''}" data-phase-link="${p.id}"><span>${p.number}</span><div><strong>${e(p.name)}</strong><small>${e(p.state)}</small></div>${i < 3 ? icon('arrow') : ''}</a>`).join('')}</div></section>${syncNote()}`;
+  const recentPanel = `<aside class="companion-panel"><div class="section-heading"><h2>最近记录与讨论</h2><a class="text-link" href="#activity">查看全部 ${icon('arrow')}</a></div>${recent.length ? `<div class="members">${recent.map(item => { const value = item.value; const url = item.type === 'record' ? recordUrl(value) : safeUrl(value.html_url); const title = item.type === 'record' ? value.title : String(value.title).replace(/^\[(想法|求助|讨论|记录|进展|实验)\]\s*/, ''); return `<a class="member-row" href="${e(url)}" target="_blank" rel="noopener noreferrer"><span class="stat-icon ${item.type === 'record' ? 'violet' : 'orange'}">${icon(item.type === 'record' ? 'logs' : 'chat')}</span><div><strong>${e(title)}</strong><p>${item.type === 'record' ? '记录' : '讨论'} · ${item.type === 'record' ? e(value.date.slice(5).replace('-', '/')) : shortDate(value.updated_at)}</p></div></a>`; }).join('')}</div>` : `<div class="ritual-card"><span class="eyebrow">ACTIVITY</span><h3>从第一篇记录开始。</h3><p>把过程整理成仓库里的 Markdown 文章，之后随时可以查阅。</p>${button('new-record', '写一篇记录', 'plus', 'button')}</div>`}</aside>`;
+  return `${pageHeading('CURRENT PROJECT / MICRODUCK', '把 MicroDuck 跑起来，也把过程学明白。', `${e(date)} · 当前阶段：${e(data.project.stage)}`, button('new-record', '新增记录', 'plus', 'button primary'))}<section class="hero"><div class="hero-copy"><div class="hero-label"><span></span> PROJECT / 001</div><h2>MicroDuck<br>复刻计划</h2><p>${e(data.project.description)}</p><a class="button dark" href="#board">查看当前任务 ${icon('arrow')}</a></div>${duckArtwork()}</section><div class="stats-grid"><a href="#board" class="stat-card"><span class="stat-icon mint">${icon('board')}</span><div><span>任务进度</span><strong>${completed}<small> / ${all.length}</small></strong></div><span class="stat-caption">完成以验收为准</span></a><a href="#activity" class="stat-card"><span class="stat-icon violet">${icon('logs')}</span><div><span>学习记录</span><strong>${logs().length}<small> 篇</small></strong></div><span class="stat-caption">Markdown 文章</span></a><a href="#activity" class="stat-card"><span class="stat-icon orange">${icon('ideas')}</span><div><span>开放讨论</span><strong>${openDiscussions}<small> 个</small></strong></div><span class="stat-caption">GitHub Issues</span></a></div><div class="dashboard-grid ${all.length ? '' : 'single'}">${taskSection}${recentPanel}</div><section class="bottom-section">${sectionHeading('MicroDuck 之后', '当前项目决定近期课程；长期路线只保留方向，不提前堆满任务。', '查看学习路径', 'roadmap')}<div class="journey-strip">${data.phases.map((p, i) => `<a href="#roadmap" class="journey-step ${i === 0 ? 'current' : ''}" data-phase-link="${p.id}"><span>${p.number}</span><div><strong>${e(p.name)}</strong><small>${e(p.state)}</small></div>${i < 3 ? icon('arrow') : ''}</a>`).join('')}</div></section>${syncNote()}`;
 }
 
 function roadmapPage() {
@@ -116,7 +123,7 @@ function boardPage() {
   const filtered = filterTasks(all, state.taskFilters);
   const option = (value, label, selected) => `<option value="${e(value)}" ${selected === value ? 'selected' : ''}>${e(label)}</option>`;
   const activeFilters = Object.entries(state.taskFilters).filter(([key, value]) => key === 'query' ? value : value !== 'all').length;
-  const filters = `<form class="issue-filter-bar" id="task-filters" role="search"><label class="task-filter-search">${icon('search')}<input id="task-filter-query" type="search" value="${e(state.taskFilters.query)}" placeholder="筛选任务" aria-label="按关键词筛选任务" autocomplete="off"></label><div class="issue-filter-selects"><label>状态<select data-task-filter="status">${option('all', '全部', state.taskFilters.status)}${STATUSES.map(s => option(s.id, s.name, state.taskFilters.status)).join('')}</select></label><label>阶段<select data-task-filter="phase">${option('all', '全部', state.taskFilters.phase)}${data.phases.map(p => option(p.id, `${p.number} · ${p.name}`, state.taskFilters.phase)).join('')}</select></label><label>标签<select data-task-filter="label">${option('all', '全部', state.taskFilters.label)}${labels.map(label => option(label, label, state.taskFilters.label)).join('')}</select></label><label>发布者<select data-task-filter="author">${option('all', '全部', state.taskFilters.author)}${authors.map(login => option(login, `@${login}`, state.taskFilters.author)).join('')}</select></label><label>指派给<select data-task-filter="assignee">${option('all', '全部', state.taskFilters.assignee)}${option('none', '未指派', state.taskFilters.assignee)}${assignees.map(value => option(value, assigneeLabel(value), state.taskFilters.assignee)).join('')}</select></label></div>${activeFilters ? `<button type="button" class="filter-clear" data-action="clear-task-filters">清除筛选</button>` : ''}<span class="filter-count">${filtered.length} / ${all.length} 项</span></form>`;
+  const filters = `<form class="issue-filter-bar" id="task-filters" role="search"><div class="filter-head"><label class="task-filter-search">${icon('search')}<input id="task-filter-query" type="search" value="${e(state.taskFilters.query)}" placeholder="筛选任务" aria-label="按关键词筛选任务" autocomplete="off"></label><span class="filter-count">${filtered.length} / ${all.length} 项</span></div><div class="issue-filter-selects"><label><span>状态</span><select data-task-filter="status">${option('all', '全部', state.taskFilters.status)}${STATUSES.map(s => option(s.id, s.name, state.taskFilters.status)).join('')}</select></label><label><span>阶段</span><select data-task-filter="phase">${option('all', '全部', state.taskFilters.phase)}${data.phases.map(p => option(p.id, `${p.number} · ${p.name}`, state.taskFilters.phase)).join('')}</select></label><label><span>标签</span><select data-task-filter="label">${option('all', '全部', state.taskFilters.label)}${labels.map(label => option(label, label, state.taskFilters.label)).join('')}</select></label><label><span>发布者</span><select data-task-filter="author">${option('all', '全部', state.taskFilters.author)}${authors.map(login => option(login, `@${login}`, state.taskFilters.author)).join('')}</select></label><label><span>指派给</span><select data-task-filter="assignee">${option('all', '全部', state.taskFilters.assignee)}${option('none', '未指派', state.taskFilters.assignee)}${assignees.map(value => option(value, assigneeLabel(value), state.taskFilters.assignee)).join('')}</select></label></div>${activeFilters ? `<button type="button" class="filter-clear" data-action="clear-task-filters">清除全部筛选</button>` : ''}</form>`;
   const board = `<div class="kanban" aria-label="项目任务看板">${STATUSES.map(s => { const items = filtered.filter(t => t.status === s.id); return `<section class="kanban-column"><h2><i class="dot ${s.id}"></i>${s.name}<span>${items.length}</span></h2><div class="kanban-cards">${items.map(t => taskCard(t)).join('') || '<div class="column-empty">没有符合条件的任务。</div>'}</div></section>`; }).join('')}</div>`;
   const content = all.length
     ? `${filters}${board}<div class="board-hint">${icon('github')}发布者来自创建 Issue 时登录的 GitHub 账号；指派人与状态仍由 Issue 管理。</div>`
@@ -125,47 +132,30 @@ function boardPage() {
 }
 
 function issueCard(issue) {
-  const kind = classifyIssue(issue);
   const url = safeUrl(issue.html_url);
-  return `<article class="issue-card"><div class="issue-top"><span class="tag ${kind === 'help' ? 'peach' : kind === 'experiment' ? 'purple' : 'green'}">${KINDS[kind]}</span><span class="tiny muted">#${issue.number} · ${shortDate(issue.updated_at)}</span></div><h3>${e(String(issue.title).replace(/^\[(任务|想法|求助|讨论|记录|进展|实验)\]\s*/, ''))}</h3><p class="issue-preview">${e(String(issue.body || '打开 GitHub 查看记录。').slice(0, 200))}</p><div class="issue-bottom"><span class="tiny muted">${e(issue.user?.login || '成员')} · ${issue.state === 'closed' ? '已结束' : '开放讨论'}</span>${external(url, `${issue.comments || 0} 条回应`, 'text-link')}</div></article>`;
+  return `<article class="issue-card"><div class="issue-top"><span class="tag peach">讨论</span><span class="tiny muted">#${issue.number} · ${shortDate(issue.updated_at)}</span></div><h3>${e(String(issue.title).replace(/^\[(任务|想法|求助|讨论|记录|进展|实验)\]\s*/, ''))}</h3><p class="issue-preview">${e(String(issue.body || '打开 GitHub 查看讨论。').replace(/<!--.*?-->/gs, '').trim().slice(0, 200))}</p><div class="issue-bottom"><span class="tiny muted">${e(issue.user?.login || '成员')} · ${issue.state === 'closed' ? '已结束' : '开放讨论'}</span>${external(url, `${issue.comments || 0} 条回应`, 'text-link')}</div></article>`;
 }
 function resourceCard(resource) {
   return `<article class="resource-card"><div class="resource-logo ${resource.type === '基础' ? 'violet' : 'mint'}">${icon(resource.type === '项目' || resource.type === '源码' ? 'github' : 'library')}</div><div><span class="tiny muted">${e(resource.type)}</span><h3>${e(resource.name)}</h3><p>${e(resource.description)}</p>${external(resource.url, '访问资料', 'text-link')}</div></article>`;
 }
 
 function activityPage() {
-  const groups = { records: ['progress', 'experiment'], discussions: ['idea', 'help'] };
-  const actual = activity().filter(i => state.ideaKind === 'all' || groups[state.ideaKind]?.includes(classifyIssue(i)));
   const filter = (id, label) => `<button data-kind-filter="${id}" class="${state.ideaKind === id ? 'active' : ''}" aria-pressed="${state.ideaKind === id}">${label}</button>`;
-  const empty = state.ideaKind === 'records'
-    ? { title: '还没有实践记录', description: '记录一次实际行动、实验结果或当前卡点。', action: button('record', '新增记录', 'plus', 'button primary') }
-    : state.ideaKind === 'discussions'
-      ? { title: '还没有讨论', description: '提出一个具体问题，或把候选想法带进讨论。', action: button('help', '发起讨论', 'chat', 'button primary') }
-      : { title: '还没有记录或讨论', description: '先记下一次行动，或发起一个需要共同判断的问题。', action: `<div class="empty-actions">${button('record', '新增记录', 'plus', 'button primary')}${button('help', '发起讨论', 'chat', 'button')}</div>` };
-  return `${pageHeading('CAPTURE THE PROCESS', '记录与讨论，放在同一条项目时间线上。', '实践留下过程和证据；讨论承接问题、判断与候选想法。', button('record', '新增记录', 'plus', 'button primary'))}${syncNote()}<div class="board-toolbar activity-toolbar"><div class="segmented">${filter('all', '全部')}${filter('records', '实践')}${filter('discussions', '讨论')}</div>${button('help', '发起讨论', 'chat', 'button')}</div>${actual.length ? `<div class="issue-grid">${actual.map(issueCard).join('')}</div>` : emptyState(state.ideaKind === 'discussions' ? 'chat' : 'logs', empty.title, repoUrl(config) ? empty.description : '连接仓库后，这里会显示真实记录与讨论。', empty.action)}<div class="template-grid"><article class="template-card"><span class="template-icon mint">${icon('logs')}</span><h3>两分钟记录</h3><p>完成了什么、证据在哪里、卡在哪里、下一步是什么。</p><button class="text-link" data-record-kind="progress">使用记录模板 ${icon('arrow')}</button></article><article class="template-card"><span class="template-icon violet">${icon('board')}</span><h3>可复现实验</h3><p>一个假设、一个变量，保留版本、条件、数据与恢复方式。</p><button class="text-link" data-record-kind="experiment">使用实验模板 ${icon('arrow')}</button></article></div>${state.ideaKind === 'all' || state.ideaKind === 'discussions' ? `<section class="bottom-section">${sectionHeading('待讨论的候选想法', '这些是起步建议，不计入已开展工作。确认价值后再转成任务。')}<div class="seed-grid">${data.ideas.map(i => `<article class="seed-card"><span class="tag peach">${e(i.tag)}</span><h3>${e(i.title)}</h3><p>${e(i.description)}</p><div><span class="tiny muted">${e(i.source)}</span><button class="icon-button" data-seed="${i.id}" aria-label="讨论：${e(i.title)}">${icon('arrow')}</button></div></article>`).join('')}</div></section>` : ''}<div class="encouragement"><span>${icon('heart')}</span><div><strong>具体的反馈比打卡更有用。</strong><p>指出哪条记录帮助了你、哪一步还需要补充，让个人积累自然成为团队资产。</p></div></div>`;
+  const showRecords = state.ideaKind === 'all' || state.ideaKind === 'records';
+  const showDiscussions = state.ideaKind === 'all' || state.ideaKind === 'discussions';
+  const recordSection = showRecords ? `<section class="activity-section">${sectionHeading('记录', '仓库中的 Markdown 文章，适合沉淀过程、实验和结论。')}${logs().length ? `<div class="record-grid">${logs().map(recordCard).join('')}</div>` : emptyState('logs', '还没有文章记录', '在仓库中新增一篇 Markdown 文章，提交后网站会自动建立索引。', button('new-record', '新增记录', 'plus', 'button primary'))}<div class="template-grid compact"><article class="template-card"><span class="template-icon mint">${icon('logs')}</span><h3>学习记录</h3><p>整理过程、关键步骤、卡点和下一步。</p><button class="text-link" data-record-template="record">在 GitHub 中编写 ${icon('arrow')}</button></article><article class="template-card"><span class="template-icon violet">${icon('board')}</span><h3>实验报告</h3><p>保留假设、变量、配置、结果与适用范围。</p><button class="text-link" data-record-template="experiment">使用实验模板 ${icon('arrow')}</button></article></div></section>` : '';
+  const discussionSection = showDiscussions ? `<section class="activity-section">${sectionHeading('讨论', 'GitHub Issues 中的问题、想法和交流。')}${activity().length ? `<div class="issue-grid">${activity().map(issueCard).join('')}</div>` : emptyState('chat', '还没有讨论', repoUrl(config) ? '提出一个具体问题，或把候选想法带进讨论。' : '连接仓库后，这里会显示 GitHub Issues 中的讨论。', button('help', '发起讨论', 'chat', 'button primary'))}${state.ideaKind === 'all' || state.ideaKind === 'discussions' ? `<section class="bottom-section">${sectionHeading('待讨论的候选想法', '这些是起步建议，不计入已开展工作。确认价值后再转成任务。')}<div class="seed-grid">${data.ideas.map(i => `<article class="seed-card"><span class="tag peach">${e(i.tag)}</span><h3>${e(i.title)}</h3><p>${e(i.description)}</p><div><span class="tiny muted">${e(i.source)}</span><button class="icon-button" data-seed="${i.id}" aria-label="讨论：${e(i.title)}">${icon('arrow')}</button></div></article>`).join('')}</div></section>` : ''}</section>` : '';
+  return `${pageHeading('CAPTURE THE PROCESS', '记录用于沉淀，讨论用于交流。', '记录是仓库中的文章文档；讨论通过 GitHub Issues 持续推进。', button('new-record', '新增记录', 'plus', 'button primary'))}${syncNote()}<div class="board-toolbar activity-toolbar"><div class="segmented">${filter('all', '全部')}${filter('records', '记录')}${filter('discussions', '讨论')}</div>${button('help', '发起讨论', 'chat', 'button')}</div>${recordSection}${discussionSection}<div class="encouragement"><span>${icon('heart')}</span><div><strong>具体的反馈比打卡更有用。</strong><p>在讨论中指出哪篇记录帮助了你、哪一步还需要补充，让个人积累自然成为共同资产。</p></div></div>`;
 }
-function logsPage() {
-  const entries = logs();
-  return `${pageHeading('EVERY TRY COUNTS', '让每一次尝试，都有迹可循。', '原始记录可以很短。值得复用的发现，再整理成知识和作品。', button('record', '写一条记录', 'plus', 'button primary'))}${syncNote()}<div class="log-intro"><div><span class="eyebrow">THE LEARNING LOOP</span><h2>记录 → 验证 → 沉淀</h2><p>今天的一个卡点，也许就是明天给伙伴的答案。</p></div><div class="log-levels"><span>01 随手记录</span>${icon('arrow')}<span>02 已验证结论</span>${icon('arrow')}<span>03 可复用资产</span></div></div>${entries.length ? `<div class="issue-grid">${entries.map(issueCard).join('')}</div>` : emptyState('logs', '第一条真实记录，等你们来写。', '记录一次环境搭建、一个没解决的问题，或今天理解的一个概念。这里不会把示例算成进展。', button('record', '记下第一步', 'plus', 'button primary'))}<div class="template-grid"><article class="template-card"><span class="template-icon mint">${icon('logs')}</span><h3>两分钟收工记录</h3><p>完成了什么、卡在哪里、下一步是什么、希望对方怎么帮。</p><button class="text-link" data-record-kind="progress">使用进展模板 ${icon('arrow')}</button></article><article class="template-card"><span class="template-icon violet">${icon('board')}</span><h3>一次可复现的实验</h3><p>一个假设、一个变量，保留版本、条件、数据与恢复方式。</p><button class="text-link" data-record-kind="experiment">使用实验模板 ${icon('arrow')}</button></article></div>`;
-}
-
-function ideasPage() {
-  const actual = state.issues.filter(i => ['idea', 'help'].includes(classifyIssue(i)) && (state.ideaKind === 'all' || classifyIssue(i) === state.ideaKind));
-  return `${pageHeading('GOOD QUESTIONS GROW HERE', '想法有地方落脚，问题有人接住。', '先把念头放进来。是否现在做，留到共同讨论时决定。', button('idea', '提出一个想法', 'plus', 'button primary'))}${syncNote()}<div class="ideas-banner"><span class="banner-icon">${icon('chat')}</span><div><h2>卡住了？把问题讲清楚，就已经前进了一步。</h2><p>带上版本、复现步骤、预期和实际结果，让伙伴更容易帮你。</p></div>${button('help', '向伙伴求助', 'arrow', 'button')}</div><div class="board-toolbar"><div class="segmented"><button data-kind-filter="all" class="${state.ideaKind === 'all' ? 'active' : ''}" aria-pressed="${state.ideaKind === 'all'}">全部</button><button data-kind-filter="idea" class="${state.ideaKind === 'idea' ? 'active' : ''}" aria-pressed="${state.ideaKind === 'idea'}">想法</button><button data-kind-filter="help" class="${state.ideaKind === 'help' ? 'active' : ''}" aria-pressed="${state.ideaKind === 'help'}">求助</button></div><span class="tiny muted">回应和鼓励保存在 GitHub 评论 / 表情中</span></div>${actual.length ? `<div class="issue-grid">${actual.map(issueCard).join('')}</div>` : emptyState('chat', '还没有来自 GitHub 的讨论', repoUrl(config) ? '提出第一个问题，邀请伙伴一起分析。' : '连接共同仓库后，可以在这里看到真实想法、求助与回应。', button('help', '整理一个问题', 'chat', 'button'))}${state.ideaKind !== 'help' ? `<section class="bottom-section">${sectionHeading('给想法池放几颗种子', '以下是起步建议，尚未认领，也不是已开展的实验。')}<div class="seed-grid">${data.ideas.map(i => `<article class="seed-card"><span class="tag peach">${e(i.tag)}</span><h3>${e(i.title)}</h3><p>${e(i.description)}</p><div><span class="tiny muted">${e(i.source)}</span><button class="icon-button" data-seed="${i.id}" aria-label="讨论：${e(i.title)}">${icon('arrow')}</button></div></article>`).join('')}</div></section>` : ''}<div class="encouragement"><span>${icon('heart')}</span><div><strong>鼓励可以很具体。</strong><p>“你写的复现步骤，让我少试了两个小时。” 打开一条记录，把这句话留给伙伴。</p></div></div>`;
-}
-
-function libraryPage() {
-  return `${pageHeading('KEEP WHAT HELPS', '把走过的路，变成可以复用的地图。', '保留资料的用途和适用版本。链接只是入口，自己的验证才是积累。')}<div class="knowledge-grid"><button class="knowledge-card" data-action="ritual"><span class="tag green">协作手册 · 起步约定</span><h2>两个人怎样一起推进？</h2><p>异步记录、每周碰头、远程结对和共同验收。</p><span class="text-link">打开约定 ${icon('arrow')}</span></button><button class="knowledge-card soft-purple" data-action="reproduce"><span class="tag purple">实验手册 · 模板</span><h2>怎样留下一个可复现的结果？</h2><p>版本、配置、命令、证据，以及下次怎样恢复。</p><span class="text-link">查看清单 ${icon('arrow')}</span></button></div>${sectionHeading('资料导航', '先看项目与硬件原始资料，再按当前问题补课程。')}<div class="resource-grid">${data.resources.map(r => `<article class="resource-card"><div class="resource-logo ${r.type === '课程' || r.type === '基础' ? 'violet' : 'mint'}">${icon(r.type === '课程' || r.type === '基础' ? 'library' : 'github')}</div><div><span class="tiny muted">${e(r.type)}</span><h3>${e(r.name)}</h3><p>${e(r.description)}</p>${external(r.url, '访问资料', 'text-link')}</div></article>`).join('')}</div><div class="learning-principle">${icon('ideas')}<div><strong>每两周，各带来一条新发现。</strong><p>它解决什么问题？和我们有什么关系？最小验证需要多少投入？带着这三个问题扩展眼界。</p></div></div>`;
-}
-
 function searchPage() {
   const q = state.query.toLowerCase();
   const taskResults = tasks().filter(t => JSON.stringify(t).toLowerCase().includes(q));
+  const recordResults = logs().filter(record => JSON.stringify(record).toLowerCase().includes(q));
   const resources = [...data.resources, ...data.courses].filter(r => JSON.stringify(r).toLowerCase().includes(q));
   const ideas = data.ideas.filter(i => JSON.stringify(i).toLowerCase().includes(q));
   const issues = state.issues.filter(i => classifyIssue(i) !== 'task' && `${i.title} ${i.body || ''}`.toLowerCase().includes(q));
-  const count = taskResults.length + resources.length + ideas.length + issues.length;
-  return `${pageHeading('FIND THE NEXT CONNECTION', '搜索工作台', `“${e(state.query)}” · 找到 ${count} 条结果`)}${!count ? emptyState('search', '暂时没有匹配的内容', '试试“标定”“PPO”“实验”或“版本”。') : ''}${taskResults.length ? sectionHeading('任务') + `<div class="search-task-grid">${taskResults.map(t => taskCard(t)).join('')}</div>` : ''}${resources.length ? sectionHeading('课程与资料') + `<div class="search-links">${resources.map(r => `<div>${external(r.url, r.name, 'text-link')}<p>${e(r.description || r.practice)}</p></div>`).join('')}</div>` : ''}${ideas.length ? sectionHeading('起步想法') + ideas.map(i => `<button class="search-idea" data-seed="${i.id}">${e(i.title)} ${icon('arrow')}</button>`).join('') : ''}${issues.length ? sectionHeading('GitHub 记录与讨论') + `<div class="issue-grid">${issues.map(issueCard).join('')}</div>` : ''}`;
+  const count = taskResults.length + recordResults.length + resources.length + ideas.length + issues.length;
+  return `${pageHeading('FIND THE NEXT CONNECTION', '搜索工作台', `“${e(state.query)}” · 找到 ${count} 条结果`)}${!count ? emptyState('search', '暂时没有匹配的内容', '试试“标定”“PPO”“实验”或“版本”。') : ''}${taskResults.length ? sectionHeading('任务') + `<div class="search-task-grid">${taskResults.map(t => taskCard(t)).join('')}</div>` : ''}${recordResults.length ? sectionHeading('记录文章') + `<div class="record-grid">${recordResults.map(recordCard).join('')}</div>` : ''}${resources.length ? sectionHeading('课程与资料') + `<div class="search-links">${resources.map(r => `<div>${external(r.url, r.name, 'text-link')}<p>${e(r.description || r.practice)}</p></div>`).join('')}</div>` : ''}${ideas.length ? sectionHeading('起步想法') + ideas.map(i => `<button class="search-idea" data-seed="${i.id}">${e(i.title)} ${icon('arrow')}</button>`).join('') : ''}${issues.length ? sectionHeading('GitHub 讨论') + `<div class="issue-grid">${issues.map(issueCard).join('')}</div>` : ''}`;
 }
 
 function renderContent() {
@@ -189,14 +179,31 @@ function openModal(content, wide = false) {
 function settings() {
   openModal(`<div class="eyebrow">MAKE IT YOURS</div><h2 id="modal-title">连接项目仓库</h2><p class="modal-description">无需在这里输入密码或令牌。网页读取公开 Issues；提交与回应在 GitHub 完成。</p><form id="settings-form"><label>工作台名称<input name="siteName" value="${e(config.siteName)}" maxlength="60" required></label><div class="form-row"><label>GitHub 用户 / 组织<input name="owner" value="${e(config.owner)}" placeholder="例如 your-name" autocomplete="off"></label><label>仓库名<input name="repo" value="${e(config.repo)}" placeholder="例如 duck-lab" autocomplete="off"></label></div><div class="form-row">${config.members.map((m, i) => `<fieldset><legend>成员 ${i + 1}</legend><label>称呼<input name="member${i}" value="${e(m.name)}" maxlength="30" required></label><label>GitHub 用户名（选填）<input name="github${i}" value="${e(m.github)}" maxlength="39" placeholder="用于匹配任务负责人"></label></fieldset>`).join('')}</div><p class="form-error" id="settings-error" role="alert"></p><div class="modal-note">此处保存仅对当前浏览器有效。保存后下载 config.json 并提交到仓库，其他成员打开网站时就能使用同一份配置。需要增加成员时，可直接扩展 config.json 中的 members 数组（最多 8 位）。</div><div class="modal-actions"><button type="button" data-action="download-config" class="button">${icon('download')}下载当前配置</button><button class="button primary" type="submit">保存本机设置 ${icon('check')}</button></div><button type="button" class="reset-link" data-action="reset-settings">恢复仓库文件中的配置</button></form>`);
 }
-function record(kind = 'progress', input = {}) {
-  const body = input.body || recordBody(kind, input);
-  const headings = { task: '添加一项任务', progress: '记下一次实践', experiment: '记录一次实验', idea: '让一个想法先落地', help: '发起一次讨论' };
-  const recordKinds = ['progress', 'experiment'];
-  const kindControl = recordKinds.includes(kind)
-    ? `<fieldset class="record-kind-fieldset"><legend>这次要记录</legend><div class="record-kind-options"><label><input type="radio" name="kind" value="progress" ${kind === 'progress' ? 'checked' : ''}><span><strong>日常记录</strong><small>完成、证据、卡点与下一步</small></span></label><label><input type="radio" name="kind" value="experiment" ${kind === 'experiment' ? 'checked' : ''}><span><strong>实验记录</strong><small>假设、变量、条件与结果</small></span></label></div></fieldset>`
-    : `<input type="hidden" name="kind" value="${e(kind)}">`;
-  openModal(`<div class="eyebrow">CAPTURE A SMALL STEP</div><h2 id="modal-title">${headings[kind] || headings.progress}</h2><p class="modal-description">先整理，再提交。内容保存在 GitHub Issue 中，对方可以评论和回应。</p><form id="record-form">${kindControl}<label>标题<input name="title" value="${e(input.title || '')}" placeholder="例如：第一次读到了正确的 IMU 姿态" maxlength="150" required></label><label>内容<textarea name="body" rows="12" data-task="${e(input.task || '')}" required>${e(body)}</textarea></label><p class="form-error" id="record-error" role="alert"></p><div class="modal-note">${repoUrl(config) ? '下一步会打开 GitHub 的提交页。GitHub 会自动把当前登录账号记录为发布者；提交后回到网站刷新。' : '尚未连接仓库。可以先下载 Markdown；连接仓库前，本表单不会提交到任何地方。'}</div><div class="modal-actions"><button type="button" class="button" data-action="download-record">${icon('download')}下载 Markdown</button><button class="button primary" type="submit">${icon('github')}${repoUrl(config) ? '到 GitHub 提交' : '连接仓库并继续'}</button></div></form>`, true);
+function discussion(input = {}) {
+  const body = input.body || recordBody('help', input);
+  openModal(`<div class="eyebrow">GITHUB DISCUSSION</div><h2 id="modal-title">发起一次讨论</h2><p class="modal-description">先把问题整理清楚，再到 GitHub Issue 中提交和交流。</p><form id="record-form"><input type="hidden" name="kind" value="help"><label>标题<input name="title" value="${e(input.title || '')}" placeholder="例如：IMU 姿态为什么与预期相反？" maxlength="150" required></label><label>讨论背景<textarea name="body" rows="10" required>${e(body)}</textarea></label><p class="form-error" id="record-error" role="alert"></p><div class="modal-actions"><button type="button" class="button" data-action="download-record">${icon('download')}下载草稿</button><button class="button primary" type="submit">${icon('github')}${repoUrl(config) ? '到 GitHub 发起讨论' : '连接仓库并继续'}</button></div></form>`);
+}
+function newRecord(template = 'record', input = {}) {
+  if (!repoUrl(config)) { draftBeforeSettings = { type: 'article', template, input }; settings(); return; }
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const phase = input.phase || state.selectedPhase || data.phases[0].id;
+  const common = `---\ntitle: 在这里填写标题\ndate: ${date}\nphase: ${phase}\ntags: []\nauthor: ${config.owner || ''}\nexcerpt: 用一句话概括这篇记录。\n---\n\n# 在这里填写标题\n\n`;
+  const sections = template === 'experiment'
+    ? `## 假设\n\n## 环境与配置\n\n## 变量与评价指标\n\n## 过程与原始证据\n\n## 结果与适用范围\n\n## 下一项验证\n`
+    : `## 背景\n\n## 过程\n\n## 关键发现\n\n## 卡点与下一步\n`;
+  const task = input.task ? `\n关联任务：${input.task}\n` : '';
+  const query = new URLSearchParams({ filename: `records/${date}-${template === 'experiment' ? 'experiment' : 'record'}.md`, value: common + task + sections });
+  window.open(`${repoUrl(config)}/new/main?${query}`, '_blank', 'noopener,noreferrer');
+  toast('请在 GitHub 中完成文章并提交；部署完成后会出现在“记录”中。');
+}
+function newTask() {
+  if (!repoUrl(config)) { draftBeforeSettings = { type: 'task' }; settings(); return; }
+  const excluded = new Set(['task', 'progress', 'experiment', 'idea', 'help', 'backlog', 'ready', 'doing', 'waiting']);
+  const labels = state.repoLabels.filter(label => !excluded.has(label.toLowerCase()) && !/^phase:/i.test(label));
+  const labelOptions = labels.length
+    ? `<fieldset class="task-label-fieldset"><legend>标签（可多选）</legend><div class="task-label-options">${labels.map(label => `<label><input type="checkbox" name="labels" value="${e(label)}"><span>${e(label)}</span></label>`).join('')}</div></fieldset>`
+    : '<p class="modal-note">当前仓库没有其他可选标签；进入 GitHub 后仍可添加。</p>';
+  openModal(`<div class="eyebrow">NEW GITHUB ISSUE</div><h2 id="modal-title">添加一项任务</h2><p class="modal-description">选择归属阶段和已有标签。标题、目标、验收标准等内容在 GitHub 中填写。</p><form id="task-form"><label>阶段<select name="phase" required>${data.phases.map(phase => `<option value="${e(phase.id)}">${e(phase.number)} · ${e(phase.name)}</option>`).join('')}</select></label>${labelOptions}<p class="form-error" id="task-form-error" role="alert"></p><div class="modal-actions"><button class="button primary" type="submit">${icon('github')}到 GitHub 填写任务</button></div></form>`);
 }
 function taskDetail(id) {
   const task = tasks().find(t => t.id === id); if (!task) return;
@@ -221,12 +228,17 @@ async function syncIssues(live = false) {
   });
   if (matchingSnapshot) {
     state.issues = mapOwners(snapshot.issues);
+    state.repoLabels = Array.isArray(snapshot.labels) ? snapshot.labels : [];
     state.limited = snapshot.limited;
     if (!live) { state.sync = 'snapshot'; renderShell(); return; }
   }
   state.sync = 'loading'; renderShell();
   const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 20000);
   try {
+    try {
+      const labelResponse = await fetch(`https://api.github.com/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/labels?per_page=100`, { headers: { Accept: 'application/vnd.github+json' }, signal: controller.signal, credentials: 'omit' });
+      if (labelResponse.ok) state.repoLabels = (await labelResponse.json()).map(label => label.name).filter(Boolean);
+    } catch {}
     const all = [];
     for (let page = 1; page <= 3; page++) {
       const response = await fetch(`https://api.github.com/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/issues?state=all&sort=updated&direction=desc&per_page=100&page=${page}`, { headers: { Accept: 'application/vnd.github+json' }, signal: controller.signal, credentials: 'omit' });
@@ -259,21 +271,20 @@ document.addEventListener('click', event => {
   if (target.dataset.task) return taskDetail(target.dataset.task);
   if (target.dataset.phase) { state.selectedPhase = target.dataset.phase; renderContent(); $(`#phase-${state.selectedPhase}`)?.focus(); return; }
   if (target.dataset.kindFilter) { state.ideaKind = target.dataset.kindFilter; renderContent(); return; }
-  if (target.dataset.recordKind) return record(target.dataset.recordKind);
-  if (target.dataset.seed) { const idea = data.ideas.find(i => i.id === target.dataset.seed); return record('help', { title: idea.title, body: recordBody('help') + `\n### 起步建议\n${idea.description}\n` }); }
+  if (target.dataset.recordTemplate) return newRecord(target.dataset.recordTemplate);
+  if (target.dataset.recordKind) return newRecord(target.dataset.recordKind === 'experiment' ? 'experiment' : 'record');
+  if (target.dataset.seed) { const idea = data.ideas.find(i => i.id === target.dataset.seed); return discussion({ title: idea.title, body: recordBody('help') + `\n### 起步建议\n${idea.description}\n` }); }
   if (target.dataset.createTask) {
-    const task = tasks().find(t => t.id === target.dataset.createTask);
-    return record('task', { title: `${task.id} ${task.title}`, body: `关联项目：MicroDuck 复刻\n关联任务：${task.id}\n\n### 目标\n${task.description}\n\n### 下一步\n${task.next}\n\n### 验收标准\n${task.acceptance}\n\n### 阻塞与依赖\n待补充\n` });
+    return newTask();
   }
-  if (target.dataset.taskRecord) return record('progress', { task: target.dataset.taskRecord });
+  if (target.dataset.taskRecord) return newRecord('record', { task: target.dataset.taskRecord });
   const action = target.dataset.action;
   if (action === 'close-modal') { $('#modal').close(); draftBeforeSettings = null; }
   if (action === 'settings') { draftBeforeSettings = null; settings(); }
-  if (action === 'record') record();
-  if (action === 'idea') record('idea');
-  if (action === 'help') record('help');
-  if (action === 'experiment') record('experiment');
-  if (action === 'new-task') record('task');
+  if (action === 'record' || action === 'new-record') newRecord();
+  if (action === 'idea' || action === 'help') discussion();
+  if (action === 'experiment') newRecord('experiment');
+  if (action === 'new-task') newTask();
   if (action === 'ritual') ritual();
   if (action === 'reproduce') reproduce();
   if (action === 'refresh') syncIssues(true);
@@ -295,11 +306,6 @@ document.addEventListener('input', event => {
 });
 document.addEventListener('change', event => {
   if (event.target.dataset.taskFilter) { state.taskFilters[event.target.dataset.taskFilter] = event.target.value; renderContent(); }
-  if (event.target.matches('#record-form input[type="radio"][name="kind"]')) {
-    const form = $('#record-form'); const previous = form.querySelector('textarea').value;
-    const task = form.querySelector('textarea').dataset.task;
-    if (['progress', 'experiment'].some(k => previous === recordBody(k, { task }))) form.querySelector('textarea').value = recordBody(event.target.value, { task });
-  }
 });
 document.addEventListener('submit', event => {
   if (event.target.id === 'task-filters') { event.preventDefault(); return; }
@@ -310,14 +316,25 @@ document.addEventListener('submit', event => {
       try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { throw new Error('当前浏览器不允许保存本机设置。请修改仓库中的 config.json。'); }
       config = next; const pending = draftBeforeSettings; draftBeforeSettings = null;
       $('#modal').close(); syncIssues(); toast('已保存本机设置。共享给伙伴请下载配置并提交到仓库。');
-      if (pending) record(pending.kind, pending);
+      if (pending?.type === 'article') newRecord(pending.template, pending.input);
+      if (pending?.type === 'task') newTask();
+      if (pending?.type === 'discussion') discussion(pending.input);
     } catch (error) { $('#settings-error').textContent = error.message; }
+  }
+  if (event.target.id === 'task-form') {
+    event.preventDefault();
+    const values = new FormData(event.target);
+    const phase = String(values.get('phase') || data.phases[0].id);
+    const labels = ['task', `phase:${phase}`, ...values.getAll('labels').map(String)];
+    const url = issueUrl(config, 'task', '', `<!-- phase:${phase} -->\n`, { labels });
+    window.open(url, '_blank', 'noopener,noreferrer');
+    toast('请在 GitHub 中填写任务标题与具体内容，确认标签后提交。');
   }
   if (event.target.id === 'record-form') {
     event.preventDefault(); const values = new FormData(event.target);
     const draft = { kind: values.get('kind'), title: String(values.get('title')).trim(), body: String(values.get('body')).trim() };
     if (!draft.title || !draft.body) { $('#record-error').textContent = '请填写标题和内容。'; return; }
-    if (!repoUrl(config)) { draftBeforeSettings = draft; settings(); return; }
+    if (!repoUrl(config)) { draftBeforeSettings = { type: 'discussion', input: draft }; settings(); return; }
     const url = issueUrl(config, draft.kind, draft.title, draft.body);
     if (url.length > 7500) { $('#record-error').textContent = '内容较长，请下载 Markdown，再到 GitHub 上传或粘贴，避免链接长度限制。'; return; }
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -349,8 +366,10 @@ async function boot() {
     await normalizeConfigFromFile();
     let saved; try { saved = localStorage.getItem(storageKey); } catch {}
     if (saved) { try { config = normalizeConfig(JSON.parse(saved)); } catch { toast('本机配置已失效，已使用仓库配置。'); } }
-    const response = await fetch('./data/space.json'); if (!response.ok) throw new Error('无法读取学习计划。');
+    const [response, recordsResponse] = await Promise.all([fetch('./data/space.json'), fetch('./data/records.json', { cache: 'no-store' })]);
+    if (!response.ok) throw new Error('无法读取学习计划。');
     data = await response.json();
+    records = recordsResponse.ok ? await recordsResponse.json() : [];
     try { const savedSnapshot = await fetch('./data/issue-snapshot.json', { cache: 'no-store' }); if (savedSnapshot.ok) snapshot = await savedSnapshot.json(); } catch {}
     route(); if (repoUrl(config)) syncIssues();
   } catch (error) {

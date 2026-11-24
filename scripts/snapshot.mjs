@@ -1,10 +1,12 @@
 export async function buildIssueSnapshot({ github, context, config, now = () => new Date().toISOString() }) {
-  const snapshot = { repository: '', updatedAt: null, limited: false, issues: [] };
+  const snapshot = { repository: '', updatedAt: null, limited: false, labels: [], issues: [] };
   const actual = `${context.repo.owner}/${context.repo.repo}`;
   const target = `${config.owner}/${config.repo}`;
   if (!config.owner || !config.repo || target.toLowerCase() !== actual.toLowerCase()) return snapshot;
   const { data: repository } = await github.rest.repos.get(context.repo);
   if (repository.private !== false) throw new Error('This public snapshot workflow requires a public repository.');
+  const { data: labels } = await github.rest.issues.listLabelsForRepo({ ...context.repo, per_page: 100 });
+  snapshot.labels = labels.map(label => label.name).filter(Boolean).toSorted((a, b) => a.localeCompare(b));
   for (let page = 1; page <= 3; page++) {
     const { data: batch } = await github.rest.issues.listForRepo({ ...context.repo, state: 'all', sort: 'updated', direction: 'desc', per_page: 100, page });
     snapshot.issues.push(...batch.filter(i => !i.pull_request).map(i => ({

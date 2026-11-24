@@ -1,14 +1,17 @@
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { normalizeConfig } from '../lib/core.mjs';
+import { buildRecordsIndex } from './records.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const out = new URL('../dist/', import.meta.url);
 normalizeConfig(JSON.parse(await readFile(new URL('../config.json', import.meta.url), 'utf8')));
 const data = JSON.parse(await readFile(new URL('../data/space.json', import.meta.url), 'utf8'));
 if (!data.phases?.length || !Array.isArray(data.tasks)) throw new Error('学习路线不能为空，任务配置必须为数组。');
+const records = await buildRecordsIndex(new URL('../records/', import.meta.url));
+await writeFile(new URL('../data/records.json', import.meta.url), JSON.stringify(records, null, 2) + '\n');
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
-for (const file of ['index.html', 'styles.css', 'app.mjs', 'config.json', 'assets', 'data', 'lib']) {
+for (const file of ['index.html', 'styles.css', 'app.mjs', 'config.json', 'assets', 'data', 'lib', 'records']) {
   await cp(new URL(`../${file}`, import.meta.url), new URL(file, out), { recursive: true });
 }
 await writeFile(new URL('.nojekyll', out), '');
