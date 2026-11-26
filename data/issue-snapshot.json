@@ -1,6 +1,136 @@
 {
-  "repository": "",
-  "updatedAt": null,
+  "repository": "xuzhuosen/robotics-learning-hub",
+  "repositories": [
+    {
+      "repository": "xuzhuosen/robotics-learning-hub",
+      "updatedAt": "2026-11-26T08:47:06.120Z",
+      "limited": false,
+      "labels": [
+        "hardware",
+        "platform",
+        "rl",
+        "simulation",
+        "software"
+      ]
+    },
+    {
+      "repository": "xuzhuosen/microduck",
+      "updatedAt": "2026-11-26T08:47:06.120Z",
+      "limited": false,
+      "labels": [
+        "hardware",
+        "platform",
+        "rl",
+        "simulation",
+        "software"
+      ]
+    },
+    {
+      "repository": "xuzhuosen/microduck_rl",
+      "updatedAt": "2026-11-26T08:47:06.120Z",
+      "limited": false,
+      "labels": [
+        "hardware",
+        "platform",
+        "rl",
+        "simulation",
+        "software"
+      ]
+    }
+  ],
+  "updatedAt": "2026-11-26T08:47:06.120Z",
   "limited": false,
-  "issues": []
+  "labels": [
+    "hardware",
+    "platform",
+    "rl",
+    "simulation",
+    "software"
+  ],
+  "issues": [
+    {
+      "repository": "xuzhuosen/robotics-learning-hub",
+      "number": 1,
+      "title": "测试",
+      "body": "关联项目：MicroDuck 复刻\n关联任务：待补充\n\n### 目标\n待填写\n\n### 下一步\n待填写\n\n### 验收标准\n待填写\n\n### 阻塞与依赖\n待填写",
+      "state": "open",
+      "html_url": "https://github.com/xuzhuosen/robotics-learning-hub/issues/1",
+      "updated_at": "2026-11-26T07:56:57Z",
+      "comments": 1,
+      "user": {
+        "login": "xuzhuosen"
+      },
+      "assignees": [],
+      "labels": [],
+      "project": {
+        "phase": "start",
+        "status": "backlog",
+        "rawPhase": "01 让鸭子动起来",
+        "rawStatus": "Backlog"
+      }
+    },
+    {
+      "repository": "xuzhuosen/robotics-learning-hub",
+      "number": 2,
+      "title": "[记录] 测试日常记录",
+      "body": "关联项目：MicroDuck 复刻\n关联任务：#1\n\n### 本次完成\n待填写\n\n### 证据链接（代码 / 视频 / 日志）\n待填写\n\n### 当前卡点\n待填写\n\n### 下一步\n待填写\n\n### 需要对方怎样帮助\n待填写",
+      "state": "open",
+      "html_url": "https://github.com/xuzhuosen/robotics-learning-hub/issues/2",
+      "updated_at": "2026-11-24T00:45:57Z",
+      "comments": 0,
+      "user": {
+        "login": "xuzhuosen"
+      },
+      "assignees": [],
+      "labels": [],
+      "project": {
+        "phase": "start",
+        "status": "backlog",
+        "rawPhase": "01 让鸭子动起来",
+        "rawStatus": "Backlog"
+      }
+    }
+  ],
+  "project": {
+    "title": "@xuzhuosen's microduck-learning project",
+    "url": "https://github.com/users/xuzhuosen/projects/1",
+    "config": {
+      "owner": "xuzhuosen",
+      "number": 1,
+      "ownerType": "user",
+      "phaseField": "Phase",
+      "statusField": "Status"
+    },
+    "updatedAt": "2026-11-26T08:47:06.120Z"
+  },
+  "discussionsEnabled": true,
+  "discussions": [],
+  "discussionCategories": [
+    {
+      "name": "Announcements",
+      "slug": "announcements"
+    },
+    {
+      "name": "General",
+      "slug": "general"
+    },
+    {
+      "name": "Ideas",
+      "slug": "ideas"
+    },
+    {
+      "name": "Polls",
+      "slug": "polls"
+    },
+    {
+      "name": "Q&A",
+      "slug": "q-a"
+    },
+    {
+      "name": "Show and tell",
+      "slug": "show-and-tell"
+    }
+  ],
+  "warnings": [],
+  "discussionsUpdatedAt": "2026-11-26T08:47:06.120Z"
 }

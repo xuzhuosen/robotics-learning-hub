@@ -6,10 +6,19 @@ on:
     types: [opened, edited, closed, reopened, labeled, unlabeled, assigned, unassigned, deleted]
   issue_comment:
     types: [created, edited, deleted]
+  discussion:
+    types: [created, edited, deleted, answered, unanswered, category_changed]
+  discussion_comment:
+    types: [created, edited, deleted]
+  schedule:
+    - cron: '*/15 * * * *'
+  repository_dispatch:
+    types: [github-sync]
   workflow_dispatch:
 permissions:
   contents: read
   issues: read
+  discussions: read
   pages: write
   id-token: write
 concurrency:
@@ -18,22 +27,43 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_PROJECTS_TOKEN: ${{ secrets.GH_PROJECTS_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
       - run: npm test
+      - name: Initialize task Phase and Status
+        if: ${{ env.HAS_PROJECTS_TOKEN == 'true' }}
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GH_PROJECTS_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const { pathToFileURL } = require('url');
+            const path = require('path');
+            const { initializeProjectTasks } = await import(pathToFileURL(path.join(process.env.GITHUB_WORKSPACE, 'scripts/initialize-project-tasks.mjs')).href);
+            const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+            const result = await initializeProjectTasks({ github, config });
+            core.info(`Initialized ${result.initialized.length} tasks.`);
+            for (const item of result.skipped) core.warning(`${item.issue}: ${item.reason}`);
+            if (result.limited) core.warning('Task initialization reached the per-repository 300-record limit.');
       - name: Build public issue snapshot
         uses: actions/github-script@v8
         with:
+          github-token: ${{ secrets.GH_PROJECTS_TOKEN || github.token }}
           script: |
             const fs = require('fs');
             const { pathToFileURL } = require('url');
             const path = require('path');
             const { buildIssueSnapshot } = await import(pathToFileURL(path.join(process.env.GITHUB_WORKSPACE, 'scripts/snapshot.mjs')).href);
             const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
-            const snapshot = await buildIssueSnapshot({ github, context, config });
+            let previous;
+            try { previous = JSON.parse(fs.readFileSync('data/issue-snapshot.json', 'utf8')); } catch {}
+            const snapshot = await buildIssueSnapshot({ github, config, previous });
+            for (const warning of snapshot.warnings) core.warning(warning);
             fs.writeFileSync('data/issue-snapshot.json', JSON.stringify(snapshot));
       - run: npm run build
       - name: Configure GitHub Pages

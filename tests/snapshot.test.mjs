@@ -16,7 +16,7 @@ test('snapshot paginates public records, omits PRs, and publishes only required 
   } };
   const result = await buildIssueSnapshot({ github, context, config, now: () => '2026-11-18T01:00:00Z' });
   assert.deepEqual(pages, [1, 2]);
-  assert.equal(result.repository, 'Alice/duck-lab');
+  assert.equal(result.repository, 'alice/duck-lab');
   assert.equal(result.issues.length, 2);
   assert.equal(result.updatedAt, '2026-11-18T01:00:00Z');
   assert.deepEqual(result.issues[0].user, { login: 'Alice' });
@@ -33,9 +33,9 @@ test('snapshot refuses to publish private repository contents', async () => {
   assert.equal(reads, 0);
 });
 
-test('blank configuration or another repository does not use workflow authorization', async () => {
+test('blank configuration does not make GitHub requests', async () => {
   const github = {};
-  for (const candidate of [{ owner: '', repo: '' }, { owner: 'Other', repo: 'duck-lab' }]) {
+  for (const candidate of [{ owner: '', repo: '' }]) {
     const result = await buildIssueSnapshot({ github, context, config: candidate });
     assert.equal(result.repository, ''); assert.equal(result.updatedAt, null); assert.deepEqual(result.issues, []);
   }

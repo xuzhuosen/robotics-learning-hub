@@ -2,6 +2,19 @@
   "siteName": "Duck Lab",
   "owner": "xuzhuosen",
   "repo": "robotics-learning-hub",
+  "repositories": [
+    { "owner": "xuzhuosen", "repo": "robotics-learning-hub" },
+    { "owner": "xuzhuosen", "repo": "microduck" },
+    { "owner": "xuzhuosen", "repo": "microduck_rl" }
+  ],
+  "project": {
+    "owner": "xuzhuosen",
+    "ownerType": "user",
+    "number": 1,
+    "phaseField": "Phase",
+    "statusField": "Status"
+  },
+  "discussions": { "enabled": true },
   "members": [
     { "name": "你", "github": "", "focus": "电控 · 硬件 · 调试" },
     { "name": "伙伴", "github": "", "focus": "仿真 · 软件 · 训练" }

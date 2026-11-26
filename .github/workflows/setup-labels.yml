@@ -7,26 +7,30 @@ jobs:
   labels:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
       - uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GH_REPO_TOKEN || github.token }}
           script: |
-            const labels = [
-              ['backlog', 'B5BFA9', '待选任务'],
-              ['ready', 'A3B8CC', '准备好，可以开始'],
-              ['doing', '8BAE6E', '正在推进'],
-              ['waiting', 'D4B37E', '等待硬件、依赖或帮助'],
-              ['task', 'C8E5AF', '一项具体任务'],
-              ['progress', 'B7D6A0', '一次进展记录'],
-              ['experiment', 'CDBDE2', '可复现实验'],
-              ['idea', 'E7C99E', '待讨论的想法'],
-              ['help', 'E5BFB0', '向伙伴求助']
-            ];
-            for (const [name, color, description] of labels) {
+            const fs = require('fs');
+            const { pathToFileURL } = require('url');
+            const path = require('path');
+            const { normalizeConfig, DOMAIN_LABELS } = await import(pathToFileURL(path.join(process.env.GITHUB_WORKSPACE, 'lib/core.mjs')).href);
+            const config = normalizeConfig(JSON.parse(fs.readFileSync('config.json', 'utf8')));
+            const targets = process.env.HAS_REPO_TOKEN === 'true' ? config.repositories : config.repositories.filter(repo => `${repo.owner}/${repo.repo}`.toLowerCase() === `${context.repo.owner}/${context.repo.repo}`.toLowerCase());
+            if (targets.length < config.repositories.length) core.warning('未配置 GH_REPO_TOKEN，仅同步当前仓库；其他仓库请用已登录的 gh CLI 同步。');
+            for (const target of targets) {
+            const { data: repository } = await github.rest.repos.get(target);
+            if (repository.private !== false) throw new Error('Label synchronization only supports configured public repositories.');
+            for (const { name, color, description } of DOMAIN_LABELS) {
               try {
-                await github.rest.issues.getLabel({ ...context.repo, name });
-                await github.rest.issues.updateLabel({ ...context.repo, name, color, description });
+                await github.rest.issues.getLabel({ ...target, name });
+                await github.rest.issues.updateLabel({ ...target, name, color, description });
               } catch (error) {
                 if (error.status !== 404) throw error;
-                await github.rest.issues.createLabel({ ...context.repo, name, color, description });
+                await github.rest.issues.createLabel({ ...target, name, color, description });
               }
             }
+            }
+        env:
+          HAS_REPO_TOKEN: ${{ secrets.GH_REPO_TOKEN != '' }}

@@ -32,9 +32,10 @@ test('Chinese record text and special characters survive a prefilled GitHub issu
   assert.equal(issueUrl(normalizeConfig(), 'help', 'x', body), '');
   assert.equal(issueUrl(config, 'unknown', 'x', body), '');
   assert.equal(new URL(issueUrl(config, 'progress', '完成标定', body)).searchParams.get('title'), '[记录] 完成标定');
-  const task = new URL(issueUrl(config, 'task', '', '<!-- phase:train -->', { labels: ['task', 'phase:train', 'software'] }));
-  assert.equal(task.searchParams.get('labels'), 'task,phase:train,software');
-  assert.equal(task.searchParams.get('body'), '<!-- phase:train -->');
+  const task = new URL(issueUrl(config, 'task', '导出策略', '### 目标\n导出模型', { labels: ['software', 'rl'] }));
+  assert.equal(task.searchParams.get('title'), '导出策略');
+  assert.equal(task.searchParams.get('labels'), 'software,rl');
+  assert.equal(task.searchParams.get('body'), '### 目标\n导出模型');
 });
 test('task and experiment templates preserve context and require evidence', () => {
   assert.match(recordBody('progress', { task: 'T03', next: '检查 IMU 方向' }), /关联任务：T03/);
@@ -44,10 +45,10 @@ test('task and experiment templates preserve context and require evidence', () =
   assert.match(recordBody('experiment'), /停止条件与恢复方式/);
   assert.match(recordBody('experiment'), /结果与适用范围/);
 });
-test('closed state wins over in-progress label and reopened issues resume their label state', () => {
+test('closed state wins over Project status; workflow labels no longer control state', () => {
   assert.equal(issueStatus({ state: 'closed', labels: [{ name: 'doing' }] }), 'done');
-  assert.equal(issueStatus({ state: 'open', labels: [{ name: 'doing' }] }), 'doing');
-  assert.equal(issueStatus({ state: 'open', labels: ['waiting'] }), 'waiting');
+  assert.equal(issueStatus({ state: 'open', labels: [{ name: 'doing' }] }), 'backlog');
+  assert.equal(issueStatus({ state: 'open', project: { status: 'doing' } }), 'doing');
   assert.equal(classifyIssue({ title: '[实验] 测试', labels: [] }), 'experiment');
   assert.equal(classifyIssue({ title: '[记录] 新记录', labels: [] }), 'progress');
   assert.equal(classifyIssue({ title: '[进展] 旧记录', labels: [] }), 'progress');
@@ -59,7 +60,7 @@ test('newest task issue controls a planned task without mutating source data; PR
   const planned = [{ id: 'T01', title: '硬件', status: 'ready', owner: 0 }];
   const issues = [
     { number: 1, title: '[任务] T01 核对', state: 'closed', updated_at: '2026-11-01T00:00:00Z', labels: [] },
-    { number: 2, title: '[任务] T01 核对', state: 'open', updated_at: '2026-11-02T00:00:00Z', labels: ['doing'], matchedOwner: 1 },
+    { number: 2, title: '[任务] T01 核对', state: 'open', updated_at: '2026-11-02T00:00:00Z', project: { status: 'doing' }, labels: [], matchedOwner: 1 },
     { number: 3, title: '[任务] T02 假 PR', state: 'open', labels: [], pull_request: {} },
     { number: 4, title: '[进展] 今天完成', state: 'open', labels: [] }
   ];
@@ -72,7 +73,7 @@ test('newest task issue controls a planned task without mutating source data; PR
   assert.equal(planned[0].owner, 0);
 });
 test('unlinked GitHub task is visible and inherits its recognized assignee', () => {
-  const result = mergeTasks([], [{ number: 42, title: '[任务] 记录新问题', state: 'open', labels: ['ready'], body: '说明', matchedOwner: 0 }]);
+  const result = mergeTasks([], [{ number: 42, title: '记录新问题', state: 'open', project: { status: 'ready' }, labels: [], body: '说明', matchedOwner: 0 }]);
   assert.equal(result[0].id, '#42');
   assert.equal(result[0].title, '记录新问题');
   assert.equal(result[0].owner, 0);
@@ -119,12 +120,15 @@ test('information architecture centers the current project and removes duplicate
   assert.doesNotMatch(app, /<select name="kind"|Object\.entries\(KINDS\)\.map/);
   assert.match(app, /activity-toolbar.*发起讨论/s);
   assert.match(app, /const logs = \(\) => records/);
-  assert.match(app, /const activity = \(\) => state\.issues\.filter\(i => classifyIssue\(i\) !== 'task'\)/);
+  assert.match(app, /const activity = \(\) => \[\.\.\.state\.discussions/);
   assert.match(app, /还没有文章记录.*新增记录.*还没有讨论.*发起讨论/s);
-  const newTask = app.match(/function newTask\(\)[\s\S]*?\n}/)?.[0] || '';
-  assert.match(newTask, /id="task-form".*阶段.*到 GitHub 填写任务/s);
+  const newTask = app.match(/function newTask\([^)]*\)[\s\S]*?\n}/)?.[0] || '';
+  assert.match(newTask, /id="task-form".*仓库.*到 GitHub 填写任务/s);
+  assert.match(newTask, /name="phase"/);
+  assert.match(newTask, /name="status"/);
   assert.match(newTask, /task-label-fieldset.*标签（可多选）/s);
-  assert.doesNotMatch(newTask, /name="title"|textarea/);
+  assert.match(newTask, /name="title"[^>]*required/);
+  assert.doesNotMatch(newTask, /textarea/);
   assert.doesNotMatch(app, /nav-count/);
   assert.doesNotMatch(app, /### 主责人|### 证据链接/);
   assert.doesNotMatch(app, /id="phase-detail"|章节完成不等于能力验收/);
