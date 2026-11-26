@@ -11,7 +11,7 @@ async function mount(saved = null) {
   const config = core.normalizeConfig(rawConfig);
   const space = JSON.parse(await readFile(new URL('../data/space.json', import.meta.url), 'utf8'));
   const snapshot = { repository: 'alice/hub', updatedAt: '2026-11-26T00:00:00Z', repositories: config.repositories.map(item => ({ repository: `${item.owner}/${item.repo}`, labels: ['software', 'hardware', 'rl', 'simulation', 'platform'] })), project: { config: config.project }, discussionsEnabled: true,
-    issues: ['alice/runtime', 'alice/rl'].map(repository => ({ repository, number: 1, title: `[任务] ${repository}`, body: '<!-- phase:train -->', labels: ['task'], state: 'open', user: { login: 'alice' } })),
+    issues: [...['alice/runtime', 'alice/rl'].map(repository => ({ repository, number: 1, title: `[任务] ${repository}`, body: '<!-- phase:train -->', labels: ['task'], state: 'open', user: { login: 'alice' } })), { repository: 'alice/hub', number: 9, title: '[讨论] 不再展示的历史讨论', body: '旧交流', labels: [] }],
     discussions: [{ source: 'discussion', repository: 'alice/hub', number: 2, title: '训练方向讨论', comments: 3, state: 'open', category: { name: '问答', slug: 'q-a' } }], discussionCategories: ['announcements', 'general', 'ideas', 'polls', 'q-a', 'show-and-tell'].map(slug => ({ slug, name: slug }))
   };
   const elements = new Map();
@@ -56,16 +56,20 @@ test('application renders the four MicroDuck phases, cross-repository board and 
   assert.equal((board.match(/class="kanban-column"/g) || []).length, 4);
   for (const name of ['Backlog', 'Ready', 'In progress', 'Done']) assert.ok(board.includes(name));
   assert.doesNotMatch(board, /In review|Waiting|待验收/);
-  assert.match(app.route('activity'), /训练方向讨论/);
+  const activity = app.route('activity');
+  assert.match(activity, /训练方向讨论/);
+  assert.doesNotMatch(activity, /不再展示的历史讨论|历史 Issue/);
   assert.match(app.route('roadmap'), /阶段成果：/);
   app.click('new-task');
   assert.match(app.element('#modal').innerHTML, /alice\/runtime/);
   assert.match(app.element('#modal').innerHTML, /name="title"[^>]*required/);
-  assert.match(app.element('#modal').innerHTML, /close-modal[\s\S]*<div class="modal-content">/);
+  assert.match(app.element('#modal').innerHTML, /class="modal-chrome">[\s\S]*close-modal[\s\S]*<\/button><\/div><div class="modal-content">/);
+  assert.equal(app.element('#modal').className, 'publish-dialog');
   assert.doesNotMatch(app.element('#modal').innerHTML, /提交后自动加入/);
   assert.equal((app.element('#modal').innerHTML.match(/name="labels"/g) || []).length, 5);
   app.submit('task-form', { title: '  导出策略 & 验证 IMU  ', repository: 'alice/rl', phase: 'train', status: 'Ready', labels: ['simulation', 'phase:improve', 'task'] });
   const task = new URL(app.opened[0]);
+  assert.equal(app.element('#modal').open, false);
   assert.equal(task.pathname, '/alice/rl/issues/new');
   assert.equal(task.searchParams.get('projects'), 'alice/1');
   assert.match(task.searchParams.get('body'), /验收标准/);
@@ -79,6 +83,8 @@ test('application renders the four MicroDuck phases, cross-repository board and 
   assert.match(app.element('#modal').innerHTML, /name="status"/);
   assert.doesNotMatch(app.element('#modal').innerHTML, /area:|value="task"/);
   app.click('help');
+  assert.equal(app.element('#modal').className, 'publish-dialog');
+  assert.equal(app.element('#modal').open, true);
   const discussionModal = app.element('#modal').innerHTML;
   const categoryOptions = discussionModal.match(/<select name="category">([\s\S]*?)<\/select>/)[1];
   assert.equal((categoryOptions.match(/<option /g) || []).length, 3);
@@ -88,6 +94,7 @@ test('application renders the four MicroDuck phases, cross-repository board and 
   assert.doesNotMatch(categoryOptions, /announcements|polls|show-and-tell|在 GitHub 选择/);
   app.submit('record-form', { kind: 'help', title: '测试讨论', body: '讨论背景', category: 'q-a' });
   const discussion = new URL(app.opened[1]);
+  assert.equal(app.element('#modal').open, false);
   assert.equal(discussion.pathname, '/alice/hub/discussions/new');
   assert.equal(discussion.searchParams.get('category'), 'q-a');
 });
@@ -105,6 +112,7 @@ test('filter menus add query qualifiers and removing a chip restores matching ta
   app.submit('task-form', { title: '测试任务', repository: 'alice/rl', phase: 'unknown', status: 'Ready' });
   assert.equal(app.opened.length, 0);
   assert.match(app.element('#task-form-error').textContent, /请选择有效/);
+  assert.equal(app.element('#modal').open, true);
   app.submit('task-form', { title: '  ', repository: 'alice/rl', phase: 'train', status: 'Ready' });
   assert.equal(app.opened.length, 0);
   assert.match(app.element('#task-form-error').textContent, /请填写任务标题/);

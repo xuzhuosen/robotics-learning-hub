@@ -1,4 +1,4 @@
-import { STATUSES, DOMAIN_LABELS, KINDS, escapeHtml as e, normalizeConfig, repoUrl, safeUrl, issueUrl, isTaskIssue, mergeTasks, filterTasks, parseTaskQuery, setTaskQueryFilter, recordBody, shortDate, repositoryKey, projectUrl, discussionUrl, snapshotMatches } from './lib/core.mjs';
+import { STATUSES, DOMAIN_LABELS, KINDS, escapeHtml as e, normalizeConfig, repoUrl, safeUrl, issueUrl, mergeTasks, filterTasks, parseTaskQuery, setTaskQueryFilter, recordBody, shortDate, projectUrl, discussionUrl, snapshotMatches } from './lib/core.mjs';
 import { readLiveIssues } from './lib/live.mjs';
 import { taskIntakeMarker } from './lib/task-intake.mjs';
 
@@ -52,7 +52,7 @@ const memberName = owner => owner === null || owner === undefined ? '待认领' 
 const avatar = (owner, small = false) => `<span class="avatar ${owner === 1 ? 'lavender' : 'sage'} ${small ? 'small' : ''}" title="${e(memberName(owner))}">${e(memberName(owner).slice(0, 1))}</span>`;
 const tasks = () => mergeTasks([], state.issues);
 const logs = () => records;
-const activity = () => [...state.discussions, ...state.issues.filter(i => !isTaskIssue(i) && !i.pull_request)].sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
+const activity = () => [...state.discussions].sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
 const statusName = id => STATUSES.find(s => s.id === id)?.name || 'Backlog';
 
 function syncNote() {
@@ -60,8 +60,7 @@ function syncNote() {
   const cached = snapshotMatches(snapshot, config);
   const count = `${config.repositories.length} 个仓库 · ${state.issues.length} 条 Issues · ${state.discussions.length} 条 Discussions`;
   const message = state.sync === 'loading' ? '正在读取各仓库的公开 Issues…' : state.sync === 'error' ? `${state.syncError} ${cached ? '保留部署时的数据。' : '当前没有可用快照。'}` : state.sync === 'snapshot' ? `数据截至 ${shortDate(snapshot.updatedAt)} · ${count}` : `Issues 已刷新 · ${count}`;
-  const extra = config.project || config.discussions.enabled ? 'Project 字段与 Discussions 随网站构建更新；“刷新 Issues”只更新任务正文、标签和关闭状态。' : 'Phase 与 Status 在 GitHub Project 中设置。';
-  return `<div class="source-note ${state.sync === 'error' ? 'warning' : ''}">${icon(state.sync === 'loading' ? 'refresh' : 'github', state.sync === 'loading' ? 'spin' : '')}<span>${e(message)}${state.limited ? '（部分来源已达读取上限）' : ''}<br>${e(extra)}${state.warnings.length ? `<br>${state.warnings.map(e).join('<br>')}` : ''}</span><button data-action="refresh">${icon('refresh')}刷新 Issues</button></div>`;
+  return `<div class="source-note ${state.sync === 'error' ? 'warning' : ''}">${icon(state.sync === 'loading' ? 'refresh' : 'github', state.sync === 'loading' ? 'spin' : '')}<span>${e(message)}${state.limited ? '（部分来源已达读取上限）' : ''}${state.warnings.length ? `<br>${state.warnings.map(e).join('<br>')}` : ''}</span><button data-action="refresh">${icon('refresh')}刷新 Issues</button></div>`;
 }
 
 function duckArtwork() {
@@ -105,8 +104,8 @@ function homePage() {
   const date = new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
   const openDiscussions = activity().filter(issue => issue.state === 'open').length;
   const taskSection = all.length ? `<section>${sectionHeading('现在做什么', '只保留已经准备好或正在推进的任务。', '打开任务看板', 'board')}<div class="focus-note"><span class="tiny-label">本阶段焦点</span>${e(data.project.weeklyFocus)}</div><div class="focus-tasks">${ready.length ? ready.map(t => taskCard(t, true)).join('') : '<p class="muted">暂时没有正在推进的任务。</p>'}</div><div class="milestone-strip"><span class="milestone-icon">${icon('check')}</span><div><strong>阶段完成标准</strong><p>${e(data.project.goal)}</p></div></div></section>` : '';
-  const recentPanel = `<aside class="companion-panel"><div class="section-heading"><h2>最近记录与讨论</h2><a class="text-link" href="#activity">查看全部 ${icon('arrow')}</a></div>${recent.length ? `<div class="members">${recent.map(item => { const value = item.value; const url = item.type === 'record' ? recordUrl(value) : safeUrl(value.html_url); const title = item.type === 'record' ? value.title : String(value.title).replace(/^\[(想法|求助|讨论|记录|进展|实验)\]\s*/, ''); return `<a class="member-row" href="${e(url)}" target="_blank" rel="noopener noreferrer"><span class="stat-icon ${item.type === 'record' ? 'violet' : 'orange'}">${icon(item.type === 'record' ? 'logs' : 'chat')}</span><div><strong>${e(title)}</strong><p>${item.type === 'record' ? '记录' : '讨论'} · ${item.type === 'record' ? e(value.date.slice(5).replace('-', '/')) : shortDate(value.updated_at)}</p></div></a>`; }).join('')}</div>` : `<div class="ritual-card"><span class="eyebrow">ACTIVITY</span><h3>从第一篇记录开始。</h3><p>把过程整理成仓库里的 Markdown 文章，之后随时可以查阅。</p>${button('new-record', '写一篇记录', 'plus', 'button')}</div>`}</aside>`;
-  return `${pageHeading('CURRENT PROJECT / MICRODUCK', '把 MicroDuck 跑起来，也把过程学明白。', `${e(date)} · 当前阶段：${e(data.project.stage)}`, button('new-record', '新增记录', 'plus', 'button primary'))}<section class="hero"><div class="hero-copy"><div class="hero-label"><span></span> PROJECT / 001</div><h2>MicroDuck<br>复刻计划</h2><p>${e(data.project.description)}</p><a class="button dark" href="#board">查看当前任务 ${icon('arrow')}</a></div>${duckArtwork()}</section><div class="stats-grid"><a href="#board" class="stat-card"><span class="stat-icon mint">${icon('board')}</span><div><span>任务进度</span><strong>${completed}<small> / ${all.length}</small></strong></div><span class="stat-caption">完成以验收为准</span></a><a href="#activity" class="stat-card"><span class="stat-icon violet">${icon('logs')}</span><div><span>学习记录</span><strong>${logs().length}<small> 篇</small></strong></div><span class="stat-caption">Markdown 文章</span></a><a href="#activity" class="stat-card"><span class="stat-icon orange">${icon('ideas')}</span><div><span>开放讨论</span><strong>${openDiscussions}<small> 个</small></strong></div><span class="stat-caption">${config.discussions.enabled ? "Discussions 与历史 Issue" : "GitHub Issues"}</span></a></div><div class="dashboard-grid ${all.length ? '' : 'single'}">${taskSection}${recentPanel}</div><section class="bottom-section">${sectionHeading('MicroDuck 四阶段', '复现、理解、扩展与优化；阶段可以根据实际问题交叉推进。', '查看学习路径', 'roadmap')}<div class="journey-strip">${data.phases.map((p, i) => `<a href="#roadmap" class="journey-step ${i === 0 ? 'current' : ''}" data-phase-link="${p.id}"><span>${p.number}</span><div><strong>${e(p.name)}</strong><small>${e(p.state)}</small></div>${i < 3 ? icon('arrow') : ''}</a>`).join('')}</div></section>${syncNote()}`;
+  const recentPanel = `<aside class="companion-panel"><div class="section-heading"><h2>最近记录与讨论</h2><a class="text-link" href="#activity">查看全部 ${icon('arrow')}</a></div>${recent.length ? `<div class="members">${recent.map(item => { const value = item.value; const url = item.type === 'record' ? recordUrl(value) : safeUrl(value.html_url); const title = item.type === 'record' ? value.title : String(value.title).replace(/^\[(想法|求助|讨论|记录|进展|实验)\]\s*/, ''); return `<a class="member-row" href="${e(url)}" target="_blank" rel="noopener noreferrer"><span class="stat-icon ${item.type === 'record' ? 'violet' : 'orange'}">${icon(item.type === 'record' ? 'logs' : 'chat')}</span><div><strong>${e(title)}</strong><p>${item.type === 'record' ? '记录' : '讨论'} · ${item.type === 'record' ? e(value.date.slice(5).replace('-', '/')) : shortDate(value.updated_at)}</p></div></a>`; }).join('')}</div>` : `<div class="ritual-card"><span class="eyebrow">ACTIVITY</span><h3>从第一篇记录开始。</h3>${button('new-record', '写一篇记录', 'plus', 'button')}</div>`}</aside>`;
+  return `${pageHeading('CURRENT PROJECT / MICRODUCK', '把 MicroDuck 跑起来，也把过程学明白。', `${e(date)} · 当前阶段：${e(data.project.stage)}`, button('new-record', '新增记录', 'plus', 'button primary'))}<section class="hero"><div class="hero-copy"><div class="hero-label"><span></span> PROJECT / 001</div><h2>MicroDuck<br>复刻学习计划</h2><p>${e(data.project.description)}</p><a class="button dark" href="#board">查看当前任务 ${icon('arrow')}</a></div>${duckArtwork()}</section><div class="stats-grid"><a href="#board" class="stat-card"><span class="stat-icon mint">${icon('board')}</span><div><span>任务进度</span><strong>${completed}<small> / ${all.length}</small></strong></div><span class="stat-caption">完成以验收为准</span></a><a href="#activity" class="stat-card"><span class="stat-icon violet">${icon('logs')}</span><div><span>学习记录</span><strong>${logs().length}<small> 篇</small></strong></div><span class="stat-caption">Markdown 文章</span></a><a href="#activity" class="stat-card"><span class="stat-icon orange">${icon('ideas')}</span><div><span>开放讨论</span><strong>${openDiscussions}<small> 个</small></strong></div><span class="stat-caption">GitHub Discussions</span></a></div><div class="dashboard-grid ${all.length ? '' : 'single'}">${taskSection}${recentPanel}</div><section class="bottom-section">${sectionHeading('MicroDuck 四阶段', '复现、理解、扩展与优化；阶段可以根据实际问题交叉推进。', '查看学习路径', 'roadmap')}<div class="journey-strip">${data.phases.map((p, i) => `<a href="#roadmap" class="journey-step ${i === 0 ? 'current' : ''}" data-phase-link="${p.id}"><span>${p.number}</span><div><strong>${e(p.name)}</strong><small>${e(p.state)}</small></div>${i < 3 ? icon('arrow') : ''}</a>`).join('')}</div></section>${syncNote()}`;
 }
 
 function roadmapPage() {
@@ -156,9 +155,9 @@ function boardPage() {
   return `${pageHeading('SMALL STEPS, REAL PROGRESS', 'MicroDuck 项目看板', '跨仓库推进任务，按学习阶段查看，完成时留下验收证据。', button('new-task', '添加任务', 'plus', 'button primary'))}${config.project ? `<div class="project-link">${external(projectUrl(config), '打开 GitHub Project', 'text-link')}</div>` : ''}${syncNote()}${content}`;
 }
 
-function issueCard(issue) {
+function discussionCard(issue) {
   const url = safeUrl(issue.html_url);
-  return `<article class="issue-card"><div class="issue-top"><span class="tag peach">${issue.source === 'discussion' ? e(issue.category?.name || 'Discussion') : '历史 Issue'}</span><span class="tiny muted">#${issue.number} · ${shortDate(issue.updated_at)}</span></div><span class="task-repository">${e(repositoryKey(issue))}</span><h3>${e(String(issue.title).replace(/^\[(任务|想法|求助|讨论|记录|进展|实验)\]\s*/, ''))}</h3><p class="issue-preview">${e(String(issue.body || '打开 GitHub 查看讨论。').replace(/<!--.*?-->/gs, '').trim().slice(0, 200))}</p><div class="issue-bottom"><span class="tiny muted">${e(issue.user?.login || '成员')} · ${issue.answered ? '已有答案' : issue.state === 'closed' ? '已结束' : '开放讨论'}</span>${external(url, `${issue.comments || 0} 条回应`, 'text-link')}</div></article>`;
+  return `<article class="issue-card"><div class="issue-top"><span class="tag peach">${e(issue.category?.name || 'Discussion')}</span><span class="tiny muted">#${issue.number} · ${shortDate(issue.updated_at)}</span></div><h3>${e(issue.title)}</h3><p class="issue-preview">${e(String(issue.body || '打开 GitHub 查看讨论。').replace(/<!--.*?-->/gs, '').trim().slice(0, 200))}</p><div class="issue-bottom"><span class="tiny muted">${e(issue.user?.login || '成员')} · ${issue.answered ? '已有答案' : issue.state === 'closed' ? '已结束' : '开放讨论'}</span>${external(url, `${issue.comments || 0} 条回应`, 'text-link')}</div></article>`;
 }
 function resourceCard(resource) {
   return `<article class="resource-card"><div class="resource-logo ${resource.type === '基础' ? 'violet' : 'mint'}">${icon(resource.type === '项目' || resource.type === '源码' ? 'github' : 'library')}</div><div><span class="tiny muted">${e(resource.type)}</span><h3>${e(resource.name)}</h3><p>${e(resource.description)}</p>${external(resource.url, '访问资料', 'text-link')}</div></article>`;
@@ -169,8 +168,8 @@ function activityPage() {
   const showRecords = state.ideaKind === 'all' || state.ideaKind === 'records';
   const showDiscussions = state.ideaKind === 'all' || state.ideaKind === 'discussions';
   const recordSection = showRecords ? `<section class="activity-section">${sectionHeading('记录', '仓库中的 Markdown 文章，适合沉淀过程、实验和结论。')}${logs().length ? `<div class="record-grid">${logs().map(recordCard).join('')}</div>` : emptyState('logs', '还没有文章记录', '在仓库中新增一篇 Markdown 文章，提交后网站会自动建立索引。', button('new-record', '新增记录', 'plus', 'button primary'))}<div class="template-grid compact"><article class="template-card"><span class="template-icon mint">${icon('logs')}</span><h3>学习记录</h3><p>整理过程、关键步骤、卡点和下一步。</p><button class="text-link" data-record-template="record">在 GitHub 中编写 ${icon('arrow')}</button></article><article class="template-card"><span class="template-icon violet">${icon('board')}</span><h3>实验报告</h3><p>保留假设、变量、配置、结果与适用范围。</p><button class="text-link" data-record-template="experiment">使用实验模板 ${icon('arrow')}</button></article></div></section>` : '';
-  const discussionSection = showDiscussions ? `<section class="activity-section">${sectionHeading('讨论', '集中讨论问题与方案，同时保留历史讨论 Issue。')}${activity().length ? `<div class="issue-grid">${activity().map(issueCard).join('')}</div>` : emptyState('chat', '还没有讨论', repoUrl(config) ? '提出一个具体问题，或把候选想法带进讨论。' : '连接仓库后，这里会显示项目讨论。', button('help', '发起讨论', 'chat', 'button primary'))}${state.ideaKind === 'all' || state.ideaKind === 'discussions' ? `<section class="bottom-section">${sectionHeading('待讨论的候选想法', '这些是起步建议，不计入已开展工作。确认价值后再转成任务。')}<div class="seed-grid">${data.ideas.map(i => `<article class="seed-card"><span class="tag peach">${e(i.tag)}</span><h3>${e(i.title)}</h3><p>${e(i.description)}</p><div><span class="tiny muted">${e(i.source)}</span><button class="icon-button" data-seed="${i.id}" aria-label="讨论：${e(i.title)}">${icon('arrow')}</button></div></article>`).join('')}</div></section>` : ''}</section>` : '';
-  return `${pageHeading('CAPTURE THE PROCESS', '记录用于沉淀，讨论用于交流。', '记录沉淀过程与结论；讨论交流问题与方案，确定行动后再创建任务。', button('new-record', '新增记录', 'plus', 'button primary'))}${syncNote()}<div class="board-toolbar activity-toolbar"><div class="segmented">${filter('all', '全部')}${filter('records', '记录')}${filter('discussions', '讨论')}</div>${button('help', '发起讨论', 'chat', 'button')}</div>${recordSection}${discussionSection}<div class="encouragement"><span>${icon('heart')}</span><div><strong>具体的反馈比打卡更有用。</strong><p>在讨论中指出哪篇记录帮助了你、哪一步还需要补充，让个人积累自然成为共同资产。</p></div></div>`;
+  const discussionSection = showDiscussions ? `<section class="activity-section">${sectionHeading('讨论', '在 GitHub Discussions 中交流问题与方案。')}${activity().length ? `<div class="issue-grid">${activity().map(discussionCard).join('')}</div>` : emptyState('chat', '还没有讨论', repoUrl(config) ? '提出一个具体问题，或把候选想法带进讨论。' : '连接仓库后，这里会显示项目讨论。', button('help', '发起讨论', 'chat', 'button primary'))}${state.ideaKind === 'all' || state.ideaKind === 'discussions' ? `<section class="bottom-section">${sectionHeading('待讨论的候选想法', '这些是起步建议，不计入已开展工作。确认价值后再转成任务。')}<div class="seed-grid">${data.ideas.map(i => `<article class="seed-card"><span class="tag peach">${e(i.tag)}</span><h3>${e(i.title)}</h3><p>${e(i.description)}</p><div><span class="tiny muted">${e(i.source)}</span><button class="icon-button" data-seed="${i.id}" aria-label="讨论：${e(i.title)}">${icon('arrow')}</button></div></article>`).join('')}</div></section>` : ''}</section>` : '';
+  return `${pageHeading('CAPTURE THE PROCESS', '记录用于沉淀，讨论用于交流。', '记录沉淀过程与结论；讨论交流问题与方案，确定行动后再创建任务。', button('new-record', '新增记录', 'plus', 'button primary'))}${syncNote()}<div class="board-toolbar activity-toolbar"><div class="segmented">${filter('all', '全部')}${filter('records', '记录')}${filter('discussions', '讨论')}</div>${button('help', '发起讨论', 'chat', 'button')}</div>${recordSection}${discussionSection}<div class="encouragement"><span>${icon('heart')}</span><div><strong>具体的反馈比打卡更有用。</strong></div></div>`;
 }
 function searchPage() {
   const q = state.query.toLowerCase();
@@ -180,7 +179,7 @@ function searchPage() {
   const ideas = data.ideas.filter(i => JSON.stringify(i).toLowerCase().includes(q));
   const issues = activity().filter(i => `${i.title} ${i.body || ''}`.toLowerCase().includes(q));
   const count = taskResults.length + recordResults.length + resources.length + ideas.length + issues.length;
-  return `${pageHeading('FIND THE NEXT CONNECTION', '搜索工作台', `“${e(state.query)}” · 找到 ${count} 条结果`)}${!count ? emptyState('search', '暂时没有匹配的内容', '试试“标定”“PPO”“实验”或“版本”。') : ''}${taskResults.length ? sectionHeading('任务') + `<div class="search-task-grid">${taskResults.map(t => taskCard(t)).join('')}</div>` : ''}${recordResults.length ? sectionHeading('记录文章') + `<div class="record-grid">${recordResults.map(recordCard).join('')}</div>` : ''}${resources.length ? sectionHeading('课程与资料') + `<div class="search-links">${resources.map(r => `<div>${external(r.url, r.name, 'text-link')}<p>${e(r.description || r.practice)}</p></div>`).join('')}</div>` : ''}${ideas.length ? sectionHeading('起步想法') + ideas.map(i => `<button class="search-idea" data-seed="${i.id}">${e(i.title)} ${icon('arrow')}</button>`).join('') : ''}${issues.length ? sectionHeading('GitHub 讨论') + `<div class="issue-grid">${issues.map(issueCard).join('')}</div>` : ''}`;
+  return `${pageHeading('FIND THE NEXT CONNECTION', '搜索工作台', `“${e(state.query)}” · 找到 ${count} 条结果`)}${!count ? emptyState('search', '暂时没有匹配的内容', '试试“标定”“PPO”“实验”或“版本”。') : ''}${taskResults.length ? sectionHeading('任务') + `<div class="search-task-grid">${taskResults.map(t => taskCard(t)).join('')}</div>` : ''}${recordResults.length ? sectionHeading('记录文章') + `<div class="record-grid">${recordResults.map(recordCard).join('')}</div>` : ''}${resources.length ? sectionHeading('课程与资料') + `<div class="search-links">${resources.map(r => `<div>${external(r.url, r.name, 'text-link')}<p>${e(r.description || r.practice)}</p></div>`).join('')}</div>` : ''}${ideas.length ? sectionHeading('起步想法') + ideas.map(i => `<button class="search-idea" data-seed="${i.id}">${e(i.title)} ${icon('arrow')}</button>`).join('') : ''}${issues.length ? sectionHeading('GitHub 讨论') + `<div class="issue-grid">${issues.map(discussionCard).join('')}</div>` : ''}`;
 }
 
 function renderContent() {
@@ -196,9 +195,9 @@ function route() {
   $('#main').focus({ preventScroll: true });
   window.scrollTo({ top: 0 });
 }
-function openModal(content, wide = false) {
-  const modal = $('#modal'); modal.className = wide ? 'wide-dialog' : '';
-  modal.innerHTML = `<button class="modal-close icon-button" data-action="close-modal" aria-label="关闭对话框">${icon('close')}</button><div class="modal-content">${content}</div>`;
+function openModal(content, wide = false, publish = false) {
+  const modal = $('#modal'); modal.className = [wide ? 'wide-dialog' : '', publish ? 'publish-dialog' : ''].filter(Boolean).join(' ');
+  modal.innerHTML = `<div class="modal-chrome"><button class="modal-close icon-button" data-action="close-modal" aria-label="关闭对话框">${icon('close')}</button></div><div class="modal-content">${content}</div>`;
   if (!modal.open) modal.showModal();
 }
 function settings() {
@@ -207,11 +206,12 @@ function settings() {
     <div class="form-row"><label>网站所属用户 / 组织<input name="owner" value="${e(config.owner)}" autocomplete="off"></label><label>网站仓库名<input name="repo" value="${e(config.repo)}" autocomplete="off"></label></div>
     <label>任务仓库（每行 owner/repo，网站仓库自动包含）<textarea class="repository-input" name="repositories" rows="4">${e(config.repositories.map(item => `${item.owner}/${item.repo}`).join('\n'))}</textarea></label>
     <fieldset><legend>GitHub Project（选填）</legend><div class="form-row"><label>所属账号<input name="projectOwner" value="${e(config.project?.owner || config.owner)}"></label><label>Project 编号<input name="projectNumber" type="number" min="1" value="${config.project?.number || ''}"></label></div><label>账号类型<select name="projectOwnerType"><option value="user">个人</option><option value="organization" ${config.project?.ownerType === 'organization' ? 'selected' : ''}>组织</option></select></label><p class="tiny muted">使用 Phase、Status 单选字段。配置提交并构建后生效。</p></fieldset>
-    <label>讨论来源<select name="discussionsEnabled"><option value="true">GitHub Discussions（保留历史讨论 Issue）</option><option value="false" ${!config.discussions.enabled ? 'selected' : ''}>GitHub Issues</option></select></label>
+    <label>讨论来源<select name="discussionsEnabled"><option value="true">GitHub Discussions</option><option value="false" ${!config.discussions.enabled ? 'selected' : ''}>未启用</option></select></label>
     <div class="form-row">${config.members.map((m, i) => `<fieldset><legend>成员 ${i + 1}</legend><label>称呼<input name="member${i}" value="${e(m.name)}" maxlength="30" required></label><label>GitHub 用户名（选填）<input name="github${i}" value="${e(m.github)}" maxlength="39"></label></fieldset>`).join('')}</div>
     <p class="form-error" id="settings-error" role="alert"></p><div class="modal-note">保存仅对当前浏览器有效。下载 config.json 并提交到仓库后共享。网页不接收密码或令牌；Project 和 Discussions 由构建流程读取。</div><div class="modal-actions"><button type="button" data-action="download-config" class="button">${icon('download')}下载当前配置</button><button class="button primary" type="submit">保存本机设置 ${icon('check')}</button></div><button type="button" class="reset-link" data-action="reset-settings">恢复仓库文件中的配置</button></form>`);
 }
 function discussion(input = {}) {
+  if (!config.discussions.enabled) { draftBeforeSettings = { type: 'discussion', input }; settings(); return; }
   const body = input.body || recordBody('help', input);
   const discussionOptions = [
     { slug: 'q-a', name: 'Q&A', description: '技术问题与故障排查' },
@@ -220,7 +220,7 @@ function discussion(input = {}) {
   ].filter(option => !state.discussionCategories.length || state.discussionCategories.some(item => item.slug === option.slug));
   const defaultCategory = discussionOptions.find(option => option.slug === 'general')?.slug || discussionOptions[0]?.slug;
   const categories = config.discussions.enabled && discussionOptions.length ? `<label>讨论类别<select name="category">${discussionOptions.map(item => `<option value="${e(item.slug)}" ${item.slug === defaultCategory ? 'selected' : ''}>${e(item.name)} · ${e(item.description)}</option>`).join('')}</select></label>` : '';
-  openModal(`<div class="eyebrow">GITHUB DISCUSSION</div><h2 id="modal-title">发起一次讨论</h2><p class="modal-description">先整理问题，再到 GitHub ${config.discussions.enabled ? 'Discussions' : 'Issues'} 中提交和交流。有明确行动后，创建任务 Issue 并互相链接。</p><form id="record-form"><input type="hidden" name="kind" value="help">${categories}<label>标题<input name="title" value="${e(input.title || '')}" placeholder="例如：IMU 姿态为什么与预期相反？" maxlength="150" required></label><label>讨论背景<textarea name="body" rows="10" required>${e(body)}</textarea></label><p class="form-error" id="record-error" role="alert"></p><div class="modal-actions"><button type="button" class="button" data-action="download-record">${icon('download')}下载草稿</button><button class="button primary" type="submit">${icon('github')}${repoUrl(config) ? '到 GitHub 发起讨论' : '连接仓库并继续'}</button></div></form>`);
+  openModal(`<div class="eyebrow">GITHUB DISCUSSION</div><h2 id="modal-title">发起一次讨论</h2><p class="modal-description">整理问题与背景，再到 GitHub Discussions 提交。</p><form id="record-form"><input type="hidden" name="kind" value="help">${categories}<label>标题<input name="title" value="${e(input.title || '')}" placeholder="例如：IMU 姿态为什么与预期相反？" maxlength="150" required></label><label>讨论背景<textarea name="body" rows="5" required>${e(body)}</textarea></label><p class="form-error" id="record-error" role="alert"></p><div class="modal-actions"><button type="button" class="button" data-action="download-record">${icon('download')}下载草稿</button><button class="button primary" type="submit">${icon('github')}${repoUrl(config) ? '到 GitHub 发起讨论' : '连接仓库并继续'}</button></div></form>`, false, true);
 }
 function newRecord(template = 'record', input = {}) {
   if (!repoUrl(config)) { draftBeforeSettings = { type: 'article', template, input }; settings(); return; }
@@ -233,6 +233,7 @@ function newRecord(template = 'record', input = {}) {
   const task = input.task ? `\n关联任务：${input.task}\n` : '';
   const query = new URLSearchParams({ filename: `records/${date}-${template === 'experiment' ? 'experiment' : 'record'}.md`, value: common + task + sections });
   window.open(`${repoUrl(config)}/new/main?${query}`, '_blank', 'noopener,noreferrer');
+  $('#modal').close(); draftBeforeSettings = null;
   toast('请在 GitHub 中完成文章并提交；部署完成后会出现在“记录”中。');
 }
 function newTask(repository = '') {
@@ -243,7 +244,7 @@ function newTask(repository = '') {
     ? `<fieldset class="task-label-fieldset"><legend>标签（可多选）</legend><div class="task-label-options">${labels.map(label => `<label><input type="checkbox" name="labels" value="${e(label)}"><span>${e(label)}</span></label>`).join('')}</div></fieldset>`
     : '<p class="modal-note">当前仓库没有其他可选标签；进入 GitHub 后仍可添加。</p>';
   const fields = config.project ? `<div class="form-row"><label>Phase<select name="phase" required>${data.phases.map(phase => `<option value="${e(phase.id)}" ${phase.id === state.selectedPhase ? 'selected' : ''}>${e(phase.number)} · ${e(phase.name)}</option>`).join('')}</select></label><label>Status<select name="status" required>${STATUSES.map(status => `<option value="${e(status.name)}">${e(status.name)}</option>`).join('')}</select></label></div>` : '';
-  openModal(`<div class="eyebrow">NEW GITHUB ISSUE</div><h2 id="modal-title">添加一项任务</h2><p class="modal-description">填写标题，选择仓库、阶段、状态与领域，随后在 GitHub 补充目标和验收标准。</p><form id="task-form"><label>标题<input name="title" placeholder="例如：完成 IMU 标定并验证姿态方向" maxlength="150" required></label><label>所属仓库<select name="repository" required>${config.repositories.map(item => { const key = `${item.owner}/${item.repo}`; return `<option value="${e(key)}" ${key === repository ? 'selected' : ''}>${e(key)}</option>`; }).join('')}</select></label>${fields}${labelOptions}<p class="form-error" id="task-form-error" role="alert"></p><div class="modal-actions"><button class="button primary" type="submit">${icon('github')}到 GitHub 填写任务</button></div></form>`);
+  openModal(`<div class="eyebrow">NEW GITHUB ISSUE</div><h2 id="modal-title">添加一项任务</h2><p class="modal-description">填写标题，选择仓库、阶段、状态与领域，随后在 GitHub 补充目标和验收标准。</p><form id="task-form"><label>标题<input name="title" placeholder="例如：完成 IMU 标定并验证姿态方向" maxlength="150" required></label><label>所属仓库<select name="repository" required>${config.repositories.map(item => { const key = `${item.owner}/${item.repo}`; return `<option value="${e(key)}" ${key === repository ? 'selected' : ''}>${e(key)}</option>`; }).join('')}</select></label>${fields}${labelOptions}<p class="form-error" id="task-form-error" role="alert"></p><div class="modal-actions"><button class="button primary" type="submit">${icon('github')}到 GitHub 填写任务</button></div></form>`, false, true);
 }
 function taskDetail(id) {
   const task = tasks().find(t => t.id === id); if (!task) return;
@@ -294,6 +295,7 @@ async function syncIssues(live = false) {
 document.addEventListener('click', event => {
   for (const menu of document.querySelectorAll('.task-filter-menu[open]')) if (!menu.contains(event.target)) menu.open = false;
   const target = event.target.closest('button, a'); if (!target) return;
+  if (target.tagName === 'A' && target.target === '_blank' && target.closest('#modal')) { $('#modal').close(); draftBeforeSettings = null; }
   if (target.dataset.taskFilter) {
     state.taskFilters.query = setTaskQueryFilter(state.taskFilters.query, target.dataset.taskFilter, target.dataset.filterValue);
     renderContent(); $(`#filter-trigger-${target.dataset.taskFilter}`)?.focus(); return;
@@ -384,6 +386,7 @@ document.addEventListener('submit', event => {
     const url = issueUrl(config, 'task', title, body, { labels, repository });
     if (!url) { $('#task-form-error').textContent = '请选择已配置的项目仓库。'; return; }
     window.open(url, '_blank', 'noopener,noreferrer');
+    $('#modal').close(); draftBeforeSettings = null;
     toast('请在 GitHub 中补充任务内容，确认后提交。');
   }
   if (event.target.id === 'record-form') {
@@ -391,9 +394,10 @@ document.addEventListener('submit', event => {
     const draft = { kind: values.get('kind'), title: String(values.get('title')).trim(), body: String(values.get('body')).trim() };
     if (!draft.title || !draft.body) { $('#record-error').textContent = '请填写标题和内容。'; return; }
     if (!repoUrl(config)) { draftBeforeSettings = { type: 'discussion', input: draft }; settings(); return; }
-    const url = config.discussions.enabled ? discussionUrl(config, draft.title, draft.body, String(values.get('category') || '')) : issueUrl(config, draft.kind, draft.title, draft.body);
+    const url = discussionUrl(config, draft.title, draft.body, String(values.get('category') || ''));
     if (url.length > 7500) { $('#record-error').textContent = '内容较长，请下载 Markdown，再到 GitHub 上传或粘贴，避免链接长度限制。'; return; }
     window.open(url, '_blank', 'noopener,noreferrer');
+    $('#modal').close(); draftBeforeSettings = null;
     toast('请在打开的 GitHub 页面检查并提交；提交后回来刷新。');
   }
 });

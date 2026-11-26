@@ -228,8 +228,31 @@ fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padd
 .task-card .task-card-heading h3 { flex: 1; min-width: 0; margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
 .task-card-heading > .mono { flex: none; color: #a1aa95; }
 .task-card-tags { margin-bottom: 6px; }
-#modal { padding: 0; overflow: hidden; }
-.modal-content { max-height: calc(90vh - 2px); overflow-y: auto; overscroll-behavior: contain; padding: 33px; scrollbar-gutter: stable; }
-#modal .modal-close { position: absolute; z-index: 3; top: 10px; right: 12px; background: #fbfcf7; box-shadow: 0 0 0 4px #fbfcf7; }
-@media (max-width: 700px) { .modal-content { padding: 26px 21px; } }
+#modal { padding: 0; overflow: hidden; max-height: calc(100dvh - 24px); }
+#modal[open] { display: flex; flex-direction: column; }
+.modal-chrome { display: flex; justify-content: flex-end; align-items: center; flex: none; height: 38px; padding: 3px 12px; }
+#modal .modal-close { position: static; width: 30px; min-height: 30px; height: 30px; color: #8c9c7e; }
+.modal-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 28px 24px; scrollbar-gutter: stable; }
+#modal.publish-dialog { width: min(560px, calc(100% - 24px)); }
+#modal.publish-dialog h2 { font-size: 21px; margin-top: 3px; }
+.publish-dialog .eyebrow { font-size: 9px; }
+.publish-dialog .modal-description { margin: 6px 0 12px; font-size: 11px; line-height: 1.5; }
+.publish-dialog form > label, .publish-dialog .form-row > label { margin-top: 10px; gap: 4px; }
+.publish-dialog .form-row { gap: 12px; }
+.publish-dialog form input:not([type="checkbox"]):not([type="hidden"]), .publish-dialog form select { min-height: 34px; height: 34px; padding: 5px 9px; }
+.publish-dialog form textarea { height: clamp(100px, 20dvh, 155px); min-height: 100px; padding: 7px 9px; line-height: 1.6; }
+.publish-dialog .task-label-fieldset { margin-top: 14px; padding: 9px; }
+.publish-dialog .task-label-options { gap: 6px; }
+.publish-dialog .task-label-options span { padding: 5px 8px; }
+.publish-dialog .modal-actions { margin-top: 15px; gap: 8px; }
+.publish-dialog .modal-actions .button { min-height: 34px; padding: 6px 12px; font-size: 11px; }
+@media (max-width: 700px) { .modal-content { padding: 0 18px 18px; } }
+@media (min-width: 480px) { .publish-dialog .form-row { grid-template-columns: 1fr 1fr; } }
+@media (max-height: 560px) {
+  .publish-dialog .modal-chrome { height: 32px; }
+  #modal.publish-dialog h2 { font-size: 19px; }
+  .publish-dialog .modal-description { margin-bottom: 8px; }
+  .publish-dialog form > label, .publish-dialog .form-row > label { margin-top: 7px; }
+  .publish-dialog .modal-actions { margin-top: 10px; }
+}
 

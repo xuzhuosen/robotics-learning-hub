@@ -37,7 +37,7 @@ GitHub Pages 的可用性与仓库可见性有关；这份无登录读取方案�
 - 首页查看 MicroDuck 当前阶段、下一步、近期记录与协作状态。
 - 看板展示配置仓库内的普通 Issue，无需 `[任务]` 标题前缀或 `task` 标签。小卡片不显示仓库名，详情仍保留完整 `owner/repo#number`。
 - 筛选采用 GitHub Issues 风格的搜索框、可搜索菜单和可移除的条件标签。支持 `repo:`、`status:`、`phase:`、`label:`、`author:`、`assignee:`、`is:open`、`is:closed`；例如 `label:rl status:"In progress" phase:train`，可与普通关键词组合。当前每个字段选一个值，多个字段组合匹配。
-- “记录与讨论”分成 Markdown 文章和 GitHub Discussions。历史非任务 Issue 继续展示并标记来源，不自动迁移或重复发布。
+- “记录与讨论”分成 Markdown 文章和 GitHub Discussions。讨论列表、首页动态和搜索仅使用 Discussions，不再展示历史讨论 Issue。
 - 学习路径围绕 MicroDuck 的复现、训练、新能力、优化提升四阶段，展示目标、成果和验收条件。阶段可交叉推进，课程按需选择；任务阶段只从 Project 的 Phase 字段读取。
 - 在 GitHub Issue 下评论、@其他成员或发送表情回应。网站显示回应数量并提供直达链接；不会假装在本地已经完成提交。
 - 默认读取构建快照，日常浏览不消耗 API 额度。网站仓库的 Issue、Discussion 及评论变动触发部署；其他仓库事件和 Project 字段变动由每 15 分钟的定时构建补齐（GitHub 调度可能延迟），也可手动运行 Deploy learning space 或发送 `github-sync` repository_dispatch。
@@ -73,7 +73,7 @@ GitHub Pages 的可用性与仓库可见性有关；这份无登录读取方案�
 
 五个领域适合当前规模；训练环境任务可同时标记 rl 与 simulation。文档按其主题分类。只有某个领域中的子主题反复需要单独筛选时，再细分标签。
 
-只展示配置公开仓库的正式 Issue；Draft Issue、PR、私有仓库内容不发布。带旧记录、进展、实验、想法或讨论标记的 Issue 继续作为历史讨论；普通 Issue 归为任务，旧 `[任务]` 前缀仍可兼容显示。
+只展示配置公开仓库的正式任务 Issue；Draft Issue、PR、私有仓库内容不发布。带旧记录、进展、实验、想法或讨论标记的 Issue 不进入任务或讨论列表；普通 Issue 归为任务，旧 `[任务]` 前缀仍可兼容显示。
 
 ### 接入 GitHub Project
 
@@ -100,6 +100,8 @@ GitHub Pages 的可用性与仓库可见性有关；这份无登录读取方案�
 `npm run project:sync` 预览待初始化任务；`npm run project:sync -- --apply` 执行初始化，然后运行 `npm run snapshot` 更新本地展示。所有字段值都经过校验，Issue 内容只作为数据读取，不作为代码执行。
 
 新讨论通过 Discussions 创建页提交，网站仅提供 Q&A（技术问题与故障排查）、General（日常交流与阶段复盘）、Ideas（实验想法与优化方案）三个类别，默认 General；其他 GitHub 类别不在网站创建入口显示。网站只提供草稿，不代替用户发布。讨论得出明确行动后创建 Issue，相互链接，稳定结论整理为文章。
+
+任务与讨论发布窗口采用紧凑布局，优先在一屏内显示。较小视口或内容超出时允许滚动，关闭按钮始终位于独立顶部区域，不覆盖内容或滚动条。跳转 GitHub 创建页后自动关闭原窗口；校验失败时保留草稿。
 
 ### 怎样新增记录
 
