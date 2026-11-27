@@ -72,7 +72,7 @@ test('application renders the four MicroDuck phases, cross-repository board and 
   assert.equal(app.element('#modal').open, false);
   assert.equal(task.pathname, '/alice/rl/issues/new');
   assert.equal(task.searchParams.get('projects'), 'alice/1');
-  assert.match(task.searchParams.get('body'), /验收标准/);
+  assert.match(task.searchParams.get('body'), /完成标准/);
   assert.equal(task.searchParams.get('labels'), 'simulation');
   assert.equal(task.searchParams.get('title'), '导出策略 & 验证 IMU');
   assert.doesNotMatch(task.searchParams.get('body'), /<!-- phase:/);

@@ -37,10 +37,14 @@ test('Chinese record text and special characters survive a prefilled GitHub issu
   assert.equal(task.searchParams.get('labels'), 'software,rl');
   assert.equal(task.searchParams.get('body'), '### 目标\n导出模型');
 });
-test('task and experiment templates preserve context and require evidence', () => {
+test('task and experiment templates preserve context and require evidence', async () => {
   assert.match(recordBody('progress', { task: 'T03', next: '检查 IMU 方向' }), /关联任务：T03/);
-  assert.doesNotMatch(recordBody('task'), /主责人|证据链接|发布者/);
-  assert.deepEqual([...recordBody('task').matchAll(/^### /gm)].length, 4);
+  const template = await readFile(new URL('../.github/ISSUE_TEMPLATE/05-task.md', import.meta.url), 'utf8');
+  assert.equal(template.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '').replaceAll('\r\n', '\n').trim(), recordBody('task').trim());
+  assert.doesNotMatch(template, /\[任务\]|主责人|关联项目|关联任务|Phase:|Status:/);
+  assert.match(recordBody('task'), /### 操作清单\n- \[ \]/);
+  assert.match(recordBody('task'), /### 完成标准/);
+  assert.match(recordBody('task'), /### 结果与证据/);
   assert.match(recordBody('progress', { next: '检查 IMU 方向' }), /### 下一步\n检查 IMU 方向/);
   assert.match(recordBody('experiment'), /停止条件与恢复方式/);
   assert.match(recordBody('experiment'), /结果与适用范围/);
